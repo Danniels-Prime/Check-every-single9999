@@ -4,6 +4,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -11,6 +12,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 class GoogleTranslateApi(private val apiKey: String) {
@@ -24,6 +26,42 @@ class GoogleTranslateApi(private val apiKey: String) {
 
     val isAvailable: Boolean get() = apiKey.isNotBlank()
 
+    // Free endpoint — no API key, no quota, works on any internet connection.
+    // Response format: [[["translated","original",...],...],...,"detectedLang"]
+    suspend fun translateFree(
+        text: String,
+        targetLanguage: String,
+        sourceLanguage: String? = null
+    ): String = withContext(Dispatchers.IO) {
+        val sl = when {
+            sourceLanguage.isNullOrBlank() || sourceLanguage == "und" -> "auto"
+            else -> sourceLanguage
+        }
+        val encoded = URLEncoder.encode(text, "UTF-8")
+        val url = "https://translate.googleapis.com/translate_a/single" +
+            "?client=gtx&sl=$sl&tl=$targetLanguage&dt=t&q=$encoded"
+
+        val request = Request.Builder().url(url).get().build()
+        val response = client.newCall(request).execute()
+        val body = response.body?.string()
+            ?: throw Exception("Empty response from free translate endpoint")
+
+        if (!response.isSuccessful) {
+            throw Exception("Free translate HTTP ${response.code}")
+        }
+
+        val root = json.parseToJsonElement(body).jsonArray
+        // root[0] = array of segments, each segment[0] = translated chunk
+        root[0].jsonArray
+            .mapNotNull { segment ->
+                segment.jsonArray.getOrNull(0)?.jsonPrimitive?.contentOrNull
+            }
+            .filter { it.isNotBlank() }
+            .joinToString("")
+            .ifBlank { throw Exception("Empty translation result") }
+    }
+
+    // Official Cloud Translate API — requires paid API key (optional).
     suspend fun translate(
         text: String,
         targetLanguage: String,
@@ -31,7 +69,7 @@ class GoogleTranslateApi(private val apiKey: String) {
     ): String = withContext(Dispatchers.IO) {
         if (!isAvailable) throw IllegalStateException("No API key configured")
 
-        val body = buildString {
+        val bodyStr = buildString {
             append("{\"q\":\"")
             append(text.replace("\"", "\\\"").replace("\n", "\\n"))
             append("\",\"target\":\"")
@@ -47,7 +85,7 @@ class GoogleTranslateApi(private val apiKey: String) {
 
         val request = Request.Builder()
             .url("https://translation.googleapis.com/language/translate/v2?key=$apiKey")
-            .post(body.toRequestBody("application/json".toMediaType()))
+            .post(bodyStr.toRequestBody("application/json".toMediaType()))
             .build()
 
         val response = client.newCall(request).execute()

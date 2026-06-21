@@ -59,8 +59,10 @@ class MlKitTranslator {
 
         val translator = getOrCreateTranslator(mlSource, mlTarget)
 
-        // Ensure model is downloaded first
-        ensureModelDownloaded(mlSource, mlTarget)
+        // Download model if needed — if this fails, the translate() call below will also
+        // fail and the caller's catch block will trigger the online fallback.
+        val downloaded = ensureModelDownloaded(mlSource, mlTarget)
+        if (!downloaded) throw Exception("ML Kit model not available for $mlSource→$mlTarget")
 
         return suspendCancellableCoroutine { cont ->
             translator.translate(text)

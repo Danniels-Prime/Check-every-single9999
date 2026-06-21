@@ -66,24 +66,34 @@ class TranslationRepository(
     }
 
     private suspend fun tryTranslate(text: String, sourceLang: String, targetLang: String): String? {
-        // Try ML Kit first
-        return try {
-            val src = if (sourceLang == "und") "auto" else sourceLang
-            mlKit.translate(text, src, targetLang)
-        } catch (e: Exception) {
-            Log.w(TAG, "ML Kit translation failed, trying Google API", e)
-            // Fallback to Google Translate API
-            if (googleApi.isAvailable) {
-                try {
-                    googleApi.translate(text, targetLang, sourceLang.takeIf { it != "und" })
-                } catch (e2: Exception) {
-                    Log.e(TAG, "Google API translation also failed", e2)
-                    null
-                }
-            } else {
-                null
+        val src = sourceLang.takeIf { it != "und" }
+
+        // 1. ML Kit — offline, fast, requires downloaded model
+        if (src != null) {  // ML Kit needs a known source language
+            try {
+                return mlKit.translate(text, src, targetLang)
+            } catch (e: Exception) {
+                Log.w(TAG, "ML Kit failed, falling back to free API: ${e.message}")
             }
         }
+
+        // 2. Free unofficial Google endpoint — online, no key, auto-detects language
+        try {
+            return googleApi.translateFree(text, targetLang, src)
+        } catch (e: Exception) {
+            Log.w(TAG, "Free translate API failed: ${e.message}")
+        }
+
+        // 3. Official Google Cloud API — online, requires paid API key
+        if (googleApi.isAvailable) {
+            try {
+                return googleApi.translate(text, targetLang, src)
+            } catch (e: Exception) {
+                Log.e(TAG, "All translation methods failed", e)
+            }
+        }
+
+        return null
     }
 
     companion object {
