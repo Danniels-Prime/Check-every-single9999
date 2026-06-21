@@ -47,29 +47,21 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-      - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch'
+      - name: Create or Update Latest Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: "Screen Translate v1.0.${{ github.run_number }}"
+          tag_name: latest
+          name: "Screen Translate — Latest APK"
           draft: false
           prerelease: false
+          make_latest: true
           files: app/build/outputs/apk/debug/app-debug.apk
           body: |
-            ## Screen Translate — Real-Time Overlay Translator
+            ## Download & Install
 
-            ### Install on your Android phone
-            1. Download **app-debug.apk** below
-            2. Open it on your phone (Chrome/Files app)
-            3. Tap **Install** — if it says "blocked", go to Settings → Security → **Allow from this source**
-            4. Open the app and grant the 3 permissions
-            5. Tap **Start Translating** — a floating button appears over EVERYTHING on your screen
-            6. Tap the floating button anytime to translate whatever is on your screen
-
-            ### How it works
-            - Floating button stays on top of ALL apps — home screen, other apps, everywhere
-            - Tap it → takes a screenshot → reads the text → translates it with ML Kit (on-device, no internet needed after first use)
-            - Blue bubbles appear right over the original words with the translation
-            - Tap any bubble to see the original text
-            - Settings: change target language, opacity, enable auto-translate every few seconds
+            1. Tap **app-debug.apk** below to download
+            2. Open the file on your Android phone
+            3. If blocked → Settings → **Allow from this source** → Install
+            4. Open the app → grant 3 permissions → tap **Start Translating**
+            5. A floating button now lives on top of EVERY app on your phone
+            6. Tap it anytime to translate whatever is on your screen
