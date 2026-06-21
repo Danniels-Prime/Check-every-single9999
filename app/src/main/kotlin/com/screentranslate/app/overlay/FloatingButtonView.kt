@@ -2,10 +2,12 @@ package com.screentranslate.app.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.WindowManager
+import com.screentranslate.app.R
 import com.screentranslate.app.databinding.OverlayFabBinding
 import com.screentranslate.app.util.DisplayMetricsHelper
 import kotlin.math.abs
@@ -19,7 +21,8 @@ class FloatingButtonView(
     private val onSavedPosition: (x: Int, y: Int) -> Unit
 ) {
 
-    private val binding = OverlayFabBinding.inflate(LayoutInflater.from(context))
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_ScreenTranslate)
+    private val binding = OverlayFabBinding.inflate(LayoutInflater.from(themedContext))
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,

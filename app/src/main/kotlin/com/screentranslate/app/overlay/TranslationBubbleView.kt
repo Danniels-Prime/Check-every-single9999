@@ -2,8 +2,10 @@ package com.screentranslate.app.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.WindowManager
+import com.screentranslate.app.R
 import com.screentranslate.app.databinding.ItemTranslationBubbleBinding
 import com.screentranslate.app.translation.TranslationResult
 
@@ -14,7 +16,9 @@ class TranslationBubbleView(
     private val opacity: Float
 ) {
 
-    private val binding = ItemTranslationBubbleBinding.inflate(LayoutInflater.from(context))
+    private val binding = ItemTranslationBubbleBinding.inflate(
+        LayoutInflater.from(ContextThemeWrapper(context, R.style.Theme_ScreenTranslate))
+    )
 
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
