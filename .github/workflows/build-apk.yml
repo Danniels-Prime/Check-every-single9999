@@ -6,6 +6,9 @@ on:
       - claude/realtime-screen-translation-qkxvmw
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Debug APK
