@@ -5,7 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -14,12 +14,10 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import com.screentranslate.app.R
 import com.screentranslate.app.databinding.ActivityMainBinding
 import com.screentranslate.app.service.OverlayService
 import com.screentranslate.app.util.PermissionHelper
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -29,32 +27,36 @@ class MainActivity : AppCompatActivity() {
     private var mediaProjectionResultCode = -1
     private var mediaProjectionData: Intent? = null
 
+    // Flag: only auto-request notification permission once per session
+    private var notificationPermissionAsked = false
+
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             overlayService = (binder as OverlayService.LocalBinder).getService()
             serviceConnected = true
-            updateStartStopButton()
+            refreshUI()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
             overlayService = null
             serviceConnected = false
-            updateStartStopButton()
+            refreshUI()
         }
     }
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        updatePermissionStates()
+        // Just refresh UI — do NOT call updatePermissionStates() recursively
+        refreshUI()
         if (!granted) {
-            Toast.makeText(this, "Notification permission needed for background service", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Notification permission needed to keep service running", Toast.LENGTH_LONG).show()
         }
     }
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        updatePermissionStates()
+        refreshUI()
     }
 
     private val screenCaptureLauncher = registerForActivityResult(
@@ -63,7 +65,7 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK && result.data != null) {
             mediaProjectionResultCode = result.resultCode
             mediaProjectionData = result.data
-            updatePermissionStates()
+            refreshUI()
         } else {
             Toast.makeText(this, "Screen capture permission denied", Toast.LENGTH_SHORT).show()
         }
@@ -75,11 +77,24 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupClickListeners()
-        updatePermissionStates()
 
-        // Bind to service if running
-        val serviceIntent = Intent(this, OverlayService::class.java)
-        bindService(serviceIntent, serviceConnection, 0)
+        // Request notification permission exactly once, here in onCreate
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !PermissionHelper.hasNotificationPermission(this) &&
+            !notificationPermissionAsked
+        ) {
+            notificationPermissionAsked = true
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        refreshUI()
+
+        // Bind to service if already running
+        bindService(
+            Intent(this, OverlayService::class.java),
+            serviceConnection,
+            0
+        )
     }
 
     private fun setupClickListeners() {
@@ -92,16 +107,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnGrantScreen.setOnClickListener {
-            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
         }
 
         binding.btnStart.setOnClickListener {
-            if (serviceConnected) {
-                stopTranslation()
-            } else {
-                startTranslation()
-            }
+            if (serviceConnected) stopTranslation() else startTranslation()
         }
 
         binding.btnSettings.setOnClickListener {
@@ -114,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         val data = mediaProjectionData
 
         if (resultCode == -1 || data == null) {
-            Toast.makeText(this, "Please grant screen capture permission first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Grant screen capture permission first", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -124,59 +135,66 @@ class MainActivity : AppCompatActivity() {
             putExtra(OverlayService.EXTRA_RESULT_DATA, data)
         }
         ContextCompat.startForegroundService(this, intent)
-        bindService(Intent(this, OverlayService::class.java), serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(
+            Intent(this, OverlayService::class.java),
+            serviceConnection,
+            Context.BIND_AUTO_CREATE
+        )
 
+        // Minimize to let the overlay be visible
         moveTaskToBack(true)
     }
 
     private fun stopTranslation() {
-        val intent = Intent(this, OverlayService::class.java).apply {
+        startService(Intent(this, OverlayService::class.java).apply {
             action = OverlayService.ACTION_STOP
-        }
-        startService(intent)
-        unbindService(serviceConnection)
+        })
+        runCatching { unbindService(serviceConnection) }
         serviceConnected = false
-        updateStartStopButton()
+        refreshUI()
     }
 
-    private fun updatePermissionStates() {
-        val hasOverlay = PermissionHelper.hasOverlayPermission(this)
+    private fun refreshUI() {
+        val hasOverlay      = PermissionHelper.hasOverlayPermission(this)
         val hasNotification = PermissionHelper.hasNotificationPermission(this)
-        val hasScreen = mediaProjectionResultCode != -1 && mediaProjectionData != null
+        val hasScreen       = mediaProjectionResultCode != -1 && mediaProjectionData != null
 
-        // Overlay
-        binding.tvOverlayStatus.text = if (hasOverlay) getString(R.string.permission_granted) else getString(R.string.permission_denied)
-        binding.tvOverlayStatus.setTextColor(getColor(if (hasOverlay) R.color.permission_granted else R.color.permission_denied))
+        // Overlay row
+        binding.tvOverlayStatus.text = getString(
+            if (hasOverlay) R.string.permission_granted else R.string.permission_denied
+        )
+        binding.tvOverlayStatus.setTextColor(
+            getColor(if (hasOverlay) R.color.permission_granted else R.color.permission_denied)
+        )
         binding.btnGrantOverlay.visibility = if (hasOverlay) View.GONE else View.VISIBLE
 
-        // Notification
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotification) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        binding.tvNotificationStatus.text = if (hasNotification) getString(R.string.permission_granted) else getString(R.string.permission_denied)
-        binding.tvNotificationStatus.setTextColor(getColor(if (hasNotification) R.color.permission_granted else R.color.permission_denied))
+        // Notification row
+        binding.tvNotificationStatus.text = getString(
+            if (hasNotification) R.string.permission_granted else R.string.permission_denied
+        )
+        binding.tvNotificationStatus.setTextColor(
+            getColor(if (hasNotification) R.color.permission_granted else R.color.permission_denied)
+        )
 
-        // Screen capture
-        binding.tvScreenStatus.text = if (hasScreen) getString(R.string.permission_granted) else getString(R.string.permission_denied)
-        binding.tvScreenStatus.setTextColor(getColor(if (hasScreen) R.color.permission_granted else R.color.permission_denied))
+        // Screen capture row
+        binding.tvScreenStatus.text = getString(
+            if (hasScreen) R.string.permission_granted else R.string.permission_denied
+        )
+        binding.tvScreenStatus.setTextColor(
+            getColor(if (hasScreen) R.color.permission_granted else R.color.permission_denied)
+        )
         binding.btnGrantScreen.visibility = if (hasScreen) View.GONE else View.VISIBLE
 
         val allGranted = hasOverlay && hasNotification && hasScreen
-        binding.tvStatus.text = if (allGranted) getString(R.string.status_ready) else getString(R.string.status_not_ready)
-        binding.btnStart.isEnabled = allGranted
 
-        updateStartStopButton()
-    }
-
-    private fun updateStartStopButton() {
         if (serviceConnected) {
-            binding.btnStart.text = getString(R.string.btn_stop_translating)
             binding.tvStatus.text = getString(R.string.status_running)
+            binding.btnStart.text = getString(R.string.btn_stop_translating)
+            binding.btnStart.isEnabled = true
         } else {
-            val allGranted = PermissionHelper.hasOverlayPermission(this) &&
-                    PermissionHelper.hasNotificationPermission(this) &&
-                    mediaProjectionResultCode != -1
-
+            binding.tvStatus.text = getString(
+                if (allGranted) R.string.status_ready else R.string.status_not_ready
+            )
             binding.btnStart.text = getString(R.string.btn_start_translating)
             binding.btnStart.isEnabled = allGranted
         }
@@ -184,13 +202,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updatePermissionStates()
+        refreshUI()
     }
 
     override fun onDestroy() {
-        if (serviceConnected) {
-            runCatching { unbindService(serviceConnection) }
-        }
+        runCatching { unbindService(serviceConnection) }
         super.onDestroy()
     }
 }
