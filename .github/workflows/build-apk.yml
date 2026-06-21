@@ -1,0 +1,72 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - claude/realtime-screen-translation-qkxvmw
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle 8.4
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Build Debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          TRANSLATE_API_KEY: ''
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenTranslate-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Screen Translate v1.0.${{ github.run_number }}"
+          draft: false
+          prerelease: false
+          files: app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            ## Screen Translate — Real-Time Overlay Translator
+
+            ### Install on your Android phone
+            1. Download **app-debug.apk** below
+            2. Open it on your phone (Chrome/Files app)
+            3. Tap **Install** — if it says "blocked", go to Settings → Security → **Allow from this source**
+            4. Open the app and grant the 3 permissions
+            5. Tap **Start Translating** — a floating button appears over EVERYTHING on your screen
+            6. Tap the floating button anytime to translate whatever is on your screen
+
+            ### How it works
+            - Floating button stays on top of ALL apps — home screen, other apps, everywhere
+            - Tap it → takes a screenshot → reads the text → translates it with ML Kit (on-device, no internet needed after first use)
+            - Blue bubbles appear right over the original words with the translation
+            - Tap any bubble to see the original text
+            - Settings: change target language, opacity, enable auto-translate every few seconds
