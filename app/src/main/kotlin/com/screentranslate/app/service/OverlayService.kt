@@ -52,7 +52,7 @@ class OverlayService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         when (intent?.action) {
-            ACTION_START -> handleStart(intent)
+            ACTION_START -> handleStart()
             ACTION_STOP -> stopSelf()
             ACTION_CAPTURE -> triggerCapture()
         }
@@ -60,17 +60,10 @@ class OverlayService : LifecycleService() {
         return START_NOT_STICKY
     }
 
-    private fun handleStart(intent: Intent) {
-        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-        val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
-
-        if (resultCode != -1 && resultData != null) {
-            container.screenCaptureManager.initialize(resultCode, resultData)
-
-            val screenSize = DisplayMetricsHelper.getScreenSize(this)
-            container.translationPipeline.screenSize = screenSize
-            container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
-        }
+    private fun handleStart() {
+        val screenSize = DisplayMetricsHelper.getScreenSize(this)
+        container.translationPipeline.screenSize = screenSize
+        container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
 
         lifecycleScope.launch {
             val savedX = container.preferencesRepository.fabX.first()
@@ -187,8 +180,6 @@ class OverlayService : LifecycleService() {
         const val ACTION_START = "com.screentranslate.app.ACTION_START"
         const val ACTION_STOP = "com.screentranslate.app.ACTION_STOP"
         const val ACTION_CAPTURE = "com.screentranslate.app.ACTION_CAPTURE"
-        const val EXTRA_RESULT_CODE = "result_code"
-        const val EXTRA_RESULT_DATA = "result_data"
         private const val TAG = "OverlayService"
     }
 }

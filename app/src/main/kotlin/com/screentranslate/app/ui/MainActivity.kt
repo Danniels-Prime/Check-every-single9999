@@ -5,10 +5,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.screentranslate.app.R
 import com.screentranslate.app.databinding.ActivityMainBinding
 import com.screentranslate.app.service.OverlayService
+import com.screentranslate.app.service.TranslationAccessibilityService
 import com.screentranslate.app.util.PermissionHelper
 
 class MainActivity : AppCompatActivity() {
@@ -24,10 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var overlayService: OverlayService? = null
     private var serviceConnected = false
-    private var mediaProjectionResultCode = -1
-    private var mediaProjectionData: Intent? = null
 
-    // Flag: only auto-request notification permission once per session
     private var notificationPermissionAsked = false
 
     private val serviceConnection = object : ServiceConnection {
@@ -46,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        // Just refresh UI — do NOT call updatePermissionStates() recursively
         refreshUI()
         if (!granted) {
             Toast.makeText(this, "Notification permission needed to keep service running", Toast.LENGTH_LONG).show()
@@ -59,16 +56,10 @@ class MainActivity : AppCompatActivity() {
         refreshUI()
     }
 
-    private val screenCaptureLauncher = registerForActivityResult(
+    private val accessibilitySettingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK && result.data != null) {
-            mediaProjectionResultCode = result.resultCode
-            mediaProjectionData = result.data
-            refreshUI()
-        } else {
-            Toast.makeText(this, "Screen capture permission denied", Toast.LENGTH_SHORT).show()
-        }
+    ) {
+        refreshUI()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +69,6 @@ class MainActivity : AppCompatActivity() {
 
         setupClickListeners()
 
-        // Request notification permission exactly once, here in onCreate
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             !PermissionHelper.hasNotificationPermission(this) &&
             !notificationPermissionAsked
@@ -89,7 +79,6 @@ class MainActivity : AppCompatActivity() {
 
         refreshUI()
 
-        // Bind to service if already running
         bindService(
             Intent(this, OverlayService::class.java),
             serviceConnection,
@@ -100,15 +89,14 @@ class MainActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         binding.btnGrantOverlay.setOnClickListener {
             val intent = Intent(
-                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 android.net.Uri.parse("package:$packageName")
             )
             overlayPermissionLauncher.launch(intent)
         }
 
         binding.btnGrantScreen.setOnClickListener {
-            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            screenCaptureLauncher.launch(mgr.createScreenCaptureIntent())
+            accessibilitySettingsLauncher.launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
 
         binding.btnStart.setOnClickListener {
@@ -121,18 +109,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startTranslation() {
-        val resultCode = mediaProjectionResultCode
-        val data = mediaProjectionData
-
-        if (resultCode == -1 || data == null) {
-            Toast.makeText(this, "Grant screen capture permission first", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val intent = Intent(this, OverlayService::class.java).apply {
             action = OverlayService.ACTION_START
-            putExtra(OverlayService.EXTRA_RESULT_CODE, resultCode)
-            putExtra(OverlayService.EXTRA_RESULT_DATA, data)
         }
         ContextCompat.startForegroundService(this, intent)
         bindService(
@@ -140,8 +118,6 @@ class MainActivity : AppCompatActivity() {
             serviceConnection,
             Context.BIND_AUTO_CREATE
         )
-
-        // Minimize to let the overlay be visible
         moveTaskToBack(true)
     }
 
@@ -157,9 +133,8 @@ class MainActivity : AppCompatActivity() {
     private fun refreshUI() {
         val hasOverlay      = PermissionHelper.hasOverlayPermission(this)
         val hasNotification = PermissionHelper.hasNotificationPermission(this)
-        val hasScreen       = mediaProjectionResultCode != -1 && mediaProjectionData != null
+        val hasAccessibility = TranslationAccessibilityService.isEnabled(this)
 
-        // Overlay row
         binding.tvOverlayStatus.text = getString(
             if (hasOverlay) R.string.permission_granted else R.string.permission_denied
         )
@@ -168,7 +143,6 @@ class MainActivity : AppCompatActivity() {
         )
         binding.btnGrantOverlay.visibility = if (hasOverlay) View.GONE else View.VISIBLE
 
-        // Notification row
         binding.tvNotificationStatus.text = getString(
             if (hasNotification) R.string.permission_granted else R.string.permission_denied
         )
@@ -176,16 +150,15 @@ class MainActivity : AppCompatActivity() {
             getColor(if (hasNotification) R.color.permission_granted else R.color.permission_denied)
         )
 
-        // Screen capture row
         binding.tvScreenStatus.text = getString(
-            if (hasScreen) R.string.permission_granted else R.string.permission_denied
+            if (hasAccessibility) R.string.permission_granted else R.string.permission_denied
         )
         binding.tvScreenStatus.setTextColor(
-            getColor(if (hasScreen) R.color.permission_granted else R.color.permission_denied)
+            getColor(if (hasAccessibility) R.color.permission_granted else R.color.permission_denied)
         )
-        binding.btnGrantScreen.visibility = if (hasScreen) View.GONE else View.VISIBLE
+        binding.btnGrantScreen.visibility = if (hasAccessibility) View.GONE else View.VISIBLE
 
-        val allGranted = hasOverlay && hasNotification && hasScreen
+        val allGranted = hasOverlay && hasNotification && hasAccessibility
 
         if (serviceConnected) {
             binding.tvStatus.text = getString(R.string.status_running)

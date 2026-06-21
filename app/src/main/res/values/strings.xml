@@ -8,9 +8,10 @@
     <string name="permission_overlay_grant">Grant Overlay Permission</string>
     <string name="permission_notification_title">Notification Permission Required</string>
     <string name="permission_notification_desc">Required to keep the translation service running in the background.</string>
-    <string name="permission_screen_title">Screen Capture Permission</string>
-    <string name="permission_screen_desc">Required to capture your screen for translation. Tap to grant.</string>
-    <string name="permission_screen_grant">Grant Screen Capture</string>
+    <string name="permission_screen_title">Accessibility Service</string>
+    <string name="permission_screen_desc">Required to read your screen for translation. Tap to open Settings → Accessibility → Screen Translate and enable it.</string>
+    <string name="permission_screen_grant">Open Accessibility Settings</string>
+    <string name="accessibility_service_description">Reads your screen to provide real-time translation. Screen Translate never stores or shares your screenshots.</string>
     <string name="permission_granted">Granted</string>
     <string name="permission_denied">Not Granted</string>
 
