@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Screen Translate</string>
+
+    <!-- Permissions -->
+    <string name="permission_overlay_title">Overlay Permission Required</string>
+    <string name="permission_overlay_desc">Screen Translate needs permission to display over other apps. Tap to grant.</string>
+    <string name="permission_overlay_grant">Grant Overlay Permission</string>
+    <string name="permission_notification_title">Notification Permission Required</string>
+    <string name="permission_notification_desc">Required to keep the translation service running in the background.</string>
+    <string name="permission_screen_title">Screen Capture Permission</string>
+    <string name="permission_screen_desc">Required to capture your screen for translation. Tap to grant.</string>
+    <string name="permission_screen_grant">Grant Screen Capture</string>
+    <string name="permission_granted">Granted</string>
+    <string name="permission_denied">Not Granted</string>
+
+    <!-- Main UI -->
+    <string name="btn_start_translating">Start Translating</string>
+    <string name="btn_stop_translating">Stop Translating</string>
+    <string name="btn_settings">Settings</string>
+    <string name="status_ready">Ready — all permissions granted</string>
+    <string name="status_not_ready">Grant all permissions above to start</string>
+    <string name="status_running">Translation overlay is active</string>
+
+    <!-- Service notification -->
+    <string name="notification_channel_name">Screen Translate Service</string>
+    <string name="notification_channel_desc">Keeps the translation overlay running</string>
+    <string name="notification_title">Screen Translate Active</string>
+    <string name="notification_text">Tap the floating button to translate</string>
+    <string name="notification_action_stop">Stop</string>
+
+    <!-- Overlay -->
+    <string name="fab_hint">Tap to translate screen</string>
+    <string name="overlay_close">Close translations</string>
+    <string name="translating">Translating…</string>
+    <string name="no_text_found">No text detected on screen</string>
+    <string name="translation_error">Translation failed</string>
+    <string name="original_text">Original: %1$s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="pref_target_language">Target Language</string>
+    <string name="pref_target_language_summary">Translate to: %1$s</string>
+    <string name="pref_opacity">Overlay Opacity</string>
+    <string name="pref_opacity_summary">%1$d%%</string>
+    <string name="pref_auto_capture">Auto-Capture</string>
+    <string name="pref_auto_capture_summary">Translate screen automatically every few seconds</string>
+    <string name="pref_auto_capture_interval">Auto-Capture Interval</string>
+    <string name="pref_display_mode">Display Mode</string>
+    <string name="pref_display_mode_bubbles">Inline Bubbles</string>
+    <string name="pref_display_mode_panel">Side Panel</string>
+    <string name="pref_download_models">Download Language Models</string>
+    <string name="pref_download_models_summary">Pre-download models for offline use</string>
+    <string name="model_download_success">Language model downloaded</string>
+    <string name="model_download_failed">Download failed — check your connection</string>
+    <string name="model_downloading">Downloading language model…</string>
+</resources>

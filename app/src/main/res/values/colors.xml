@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#1565C0</color>
+    <color name="primary_dark">#003c8f</color>
+    <color name="primary_light">#5e92f3</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="secondary">#00B0FF</color>
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#212121</color>
+    <color name="error">#B00020</color>
+
+    <color name="bubble_background">#CC1565C0</color>
+    <color name="bubble_text">#FFFFFF</color>
+    <color name="bubble_original_text">#E3F2FD</color>
+    <color name="overlay_panel_bg">#E61565C0</color>
+
+    <color name="permission_granted">#2E7D32</color>
+    <color name="permission_denied">#C62828</color>
+
+    <color name="fab_background">#1565C0</color>
+    <color name="fab_icon">#FFFFFF</color>
+</resources>

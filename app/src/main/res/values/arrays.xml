@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="language_names">
+        <item>English</item>
+        <item>Spanish</item>
+        <item>French</item>
+        <item>German</item>
+        <item>Italian</item>
+        <item>Portuguese</item>
+        <item>Russian</item>
+        <item>Chinese (Simplified)</item>
+        <item>Chinese (Traditional)</item>
+        <item>Japanese</item>
+        <item>Korean</item>
+        <item>Arabic</item>
+        <item>Hindi</item>
+        <item>Turkish</item>
+        <item>Polish</item>
+        <item>Dutch</item>
+        <item>Swedish</item>
+        <item>Norwegian</item>
+        <item>Danish</item>
+        <item>Finnish</item>
+        <item>Ukrainian</item>
+        <item>Vietnamese</item>
+        <item>Thai</item>
+        <item>Indonesian</item>
+    </string-array>
+
+    <string-array name="language_codes">
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>it</item>
+        <item>pt</item>
+        <item>ru</item>
+        <item>zh</item>
+        <item>zh-TW</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>ar</item>
+        <item>hi</item>
+        <item>tr</item>
+        <item>pl</item>
+        <item>nl</item>
+        <item>sv</item>
+        <item>no</item>
+        <item>da</item>
+        <item>fi</item>
+        <item>uk</item>
+        <item>vi</item>
+        <item>th</item>
+        <item>id</item>
+    </string-array>
+
+    <string-array name="auto_capture_intervals">
+        <item>2 seconds</item>
+        <item>3 seconds</item>
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+    </string-array>
+
+    <string-array name="auto_capture_interval_values">
+        <item>2000</item>
+        <item>3000</item>
+        <item>5000</item>
+        <item>10000</item>
+    </string-array>
+</resources>
