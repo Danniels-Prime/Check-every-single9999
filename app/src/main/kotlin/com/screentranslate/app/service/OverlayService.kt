@@ -2,11 +2,14 @@ package com.screentranslate.app.service
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.screentranslate.app.AppContainer
@@ -160,7 +163,16 @@ class OverlayService : LifecycleService() {
             .setShowWhen(false)
             .build()
 
-        startForeground(ScreenTranslateApp.NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceCompat.startForeground(
+                this,
+                ScreenTranslateApp.NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(ScreenTranslateApp.NOTIFICATION_ID, notification)
+        }
     }
 
     override fun onBind(intent: Intent): IBinder {
