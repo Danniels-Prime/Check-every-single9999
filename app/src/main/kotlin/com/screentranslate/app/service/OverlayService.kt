@@ -94,7 +94,13 @@ class OverlayService : LifecycleService() {
             container.translationPipeline.targetLanguage = targetLang
 
             overlayManager.showFab(
-                onTap = { triggerCapture() },
+                onTap = {
+                    if (overlayManager.hasBubbles) {
+                        overlayManager.clearBubbles()
+                    } else {
+                        triggerCapture()
+                    }
+                },
                 savedX = savedX,
                 savedY = savedY
             )
@@ -122,14 +128,16 @@ class OverlayService : LifecycleService() {
         if (!isCapturing.compareAndSet(false, true)) return
 
         lifecycleScope.launch {
-            overlayManager.clearBubbles()
+            overlayManager.clearBubbles(updateFabIcon = false)
             overlayManager.setFabProcessing(true)
 
             container.translationPipeline.executeCapture().collect { state ->
                 when (state) {
                     is PipelineState.Complete -> {
                         overlayManager.setFabProcessing(false)
-                        overlayManager.showTranslations(state.results)
+                        overlayManager.showTranslations(state.results) { text, lang ->
+                            container.ttsManager.speak(text, lang)
+                        }
                         isCapturing.set(false)
                     }
                     is PipelineState.Error -> {
@@ -207,6 +215,7 @@ class OverlayService : LifecycleService() {
         overlayManager.destroy()
         container.screenCaptureManager.release()
         container.mlKitTranslator.release()
+        container.ttsManager.release()
         super.onDestroy()
     }
 

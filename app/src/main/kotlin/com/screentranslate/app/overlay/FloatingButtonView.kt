@@ -88,6 +88,11 @@ class FloatingButtonView(
         onSavedPosition(params.x, params.y)
     }
 
+    fun setShowClear(showClear: Boolean) {
+        val icon = if (showClear) R.drawable.ic_close else R.drawable.ic_translate
+        binding.fab.setImageResource(icon)
+    }
+
     fun setProcessing(isProcessing: Boolean) {
         val color = if (isProcessing) 0xFF9E9E9E.toInt() else 0xFF1565C0.toInt()
         binding.fab.backgroundTintList = ColorStateList.valueOf(color)

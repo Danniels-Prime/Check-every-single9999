@@ -10,6 +10,7 @@ import com.screentranslate.app.translation.LanguageDetector
 import com.screentranslate.app.translation.MlKitTranslator
 import com.screentranslate.app.translation.TranslationRepository
 import com.screentranslate.app.util.CoroutineDispatchers
+import com.screentranslate.app.util.TtsManager
 
 class AppContainer(val app: Application) {
     val dispatchers = CoroutineDispatchers()
@@ -19,6 +20,7 @@ class AppContainer(val app: Application) {
     val mlKitTranslator = MlKitTranslator()
     val googleTranslateApi = GoogleTranslateApi(BuildConfig.GOOGLE_TRANSLATE_API_KEY)
     val translationRepository = TranslationRepository(mlKitTranslator, googleTranslateApi, languageDetector)
+    val ttsManager = TtsManager(app)
     val screenCaptureManager = ScreenCaptureManager(app)
     val translationPipeline = TranslationPipeline(
         screenCaptureManager,

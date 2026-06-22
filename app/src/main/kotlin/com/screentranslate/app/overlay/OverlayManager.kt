@@ -11,6 +11,7 @@ class OverlayManager(
 
     private var fabView: FloatingButtonView? = null
     private val bubbles = mutableListOf<TranslationBubbleView>()
+    val hasBubbles: Boolean get() = bubbles.isNotEmpty()
     private var opacity: Float = 0.85f
     private var onFabPositionSaved: ((Int, Int) -> Unit)? = null
 
@@ -40,24 +41,26 @@ class OverlayManager(
         fabView = null
     }
 
-    fun showTranslations(results: List<TranslationResult>) {
-        clearBubbles()
+    fun showTranslations(results: List<TranslationResult>, onSpeak: (String, String) -> Unit) {
+        clearBubbles(updateFabIcon = false)
         results.forEach { result ->
             if (result.translatedText != result.originalText) {
-                val bubble = TranslationBubbleView(context, windowManager, result, opacity)
+                val bubble = TranslationBubbleView(context, windowManager, result, opacity, onSpeak)
                 bubble.addToWindow()
                 bubbles.add(bubble)
             }
         }
+        if (bubbles.isNotEmpty()) fabView?.setShowClear(true)
     }
 
     fun setFabProcessing(isProcessing: Boolean) {
         fabView?.setProcessing(isProcessing)
     }
 
-    fun clearBubbles() {
+    fun clearBubbles(updateFabIcon: Boolean = true) {
         bubbles.forEach { it.removeFromWindow() }
         bubbles.clear()
+        if (updateFabIcon) fabView?.setShowClear(false)
     }
 
     fun destroy() {

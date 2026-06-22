@@ -13,7 +13,8 @@ class TranslationBubbleView(
     private val context: Context,
     private val windowManager: WindowManager,
     private val result: TranslationResult,
-    private val opacity: Float
+    private val opacity: Float,
+    private val onSpeak: (text: String, lang: String) -> Unit
 ) {
 
     private val binding = ItemTranslationBubbleBinding.inflate(
@@ -36,20 +37,11 @@ class TranslationBubbleView(
 
     init {
         binding.tvTranslated.text = result.translatedText
-        binding.tvOriginal.text = context.getString(
-            com.screentranslate.app.R.string.original_text,
-            result.originalText
-        )
+        binding.tvOriginal.text = context.getString(R.string.original_text, result.originalText)
         binding.root.alpha = opacity
 
-        // Toggle original text visibility on tap
-        binding.root.setOnClickListener {
-            val isVisible = binding.tvOriginal.visibility == android.view.View.VISIBLE
-            binding.tvOriginal.visibility = if (isVisible) {
-                android.view.View.GONE
-            } else {
-                android.view.View.VISIBLE
-            }
+        binding.btnSpeak.setOnClickListener {
+            onSpeak(result.translatedText, result.targetLang)
         }
     }
 
