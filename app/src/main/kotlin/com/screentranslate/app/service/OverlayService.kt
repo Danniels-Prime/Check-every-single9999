@@ -55,7 +55,7 @@ class OverlayService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
 
         when (intent?.action) {
-            ACTION_START -> handleStart()
+            ACTION_START -> handleStart(intent)
             ACTION_STOP -> stopSelf()
             ACTION_CAPTURE -> triggerCapture()
         }
@@ -63,10 +63,27 @@ class OverlayService : LifecycleService() {
         return START_NOT_STICKY
     }
 
-    private fun handleStart() {
+    private fun handleStart(intent: Intent) {
         val screenSize = DisplayMetricsHelper.getScreenSize(this)
         container.translationPipeline.screenSize = screenSize
         container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
+
+        // Wire up MediaProjection if the user granted screen recording.
+        // Must call startForeground() with the MEDIA_PROJECTION type BEFORE getMediaProjection().
+        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+        val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
+        if (resultCode != -1 && resultData != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(
+                    this,
+                    ScreenTranslateApp.NOTIFICATION_ID,
+                    buildNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            }
+            container.screenCaptureManager.initialize(resultCode, resultData)
+        }
 
         lifecycleScope.launch {
             val savedX = container.preferencesRepository.fabX.first()
@@ -141,37 +158,35 @@ class OverlayService : LifecycleService() {
         autoCaptureJob = null
     }
 
+    private fun buildNotification() = NotificationCompat.Builder(this, ScreenTranslateApp.NOTIFICATION_CHANNEL_ID)
+        .setContentTitle(getString(R.string.notification_title))
+        .setContentText(getString(R.string.notification_text))
+        .setSmallIcon(R.drawable.ic_translate)
+        .setContentIntent(
+            PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        )
+        .addAction(
+            R.drawable.ic_close, getString(R.string.notification_action_stop),
+            PendingIntent.getService(
+                this, 0,
+                Intent(this, OverlayService::class.java).apply { action = ACTION_STOP },
+                PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .setOngoing(true)
+        .setShowWhen(false)
+        .build()
+
     private fun startForegroundWithNotification() {
-        val stopIntent = PendingIntent.getService(
-            this, 0,
-            Intent(this, OverlayService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        val openIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(this, ScreenTranslateApp.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title))
-            .setContentText(getString(R.string.notification_text))
-            .setSmallIcon(R.drawable.ic_translate)
-            .setContentIntent(openIntent)
-            .addAction(R.drawable.ic_close, getString(R.string.notification_action_stop), stopIntent)
-            .setOngoing(true)
-            .setShowWhen(false)
-            .build()
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ServiceCompat.startForeground(
                 this,
                 ScreenTranslateApp.NOTIFICATION_ID,
-                notification,
+                buildNotification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )
         } else {
-            startForeground(ScreenTranslateApp.NOTIFICATION_ID, notification)
+            startForeground(ScreenTranslateApp.NOTIFICATION_ID, buildNotification())
         }
     }
 
@@ -192,6 +207,8 @@ class OverlayService : LifecycleService() {
         const val ACTION_START = "com.screentranslate.app.ACTION_START"
         const val ACTION_STOP = "com.screentranslate.app.ACTION_STOP"
         const val ACTION_CAPTURE = "com.screentranslate.app.ACTION_CAPTURE"
+        const val EXTRA_RESULT_CODE = "result_code"
+        const val EXTRA_RESULT_DATA = "result_data"
         private const val TAG = "OverlayService"
     }
 }
