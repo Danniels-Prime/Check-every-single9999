@@ -16,8 +16,12 @@ import androidx.lifecycle.lifecycleScope
 import com.screentranslate.app.AppContainer
 import com.screentranslate.app.R
 import com.screentranslate.app.ScreenTranslateApp
+import com.screentranslate.app.ai.AiExplainerFactory
+import com.screentranslate.app.ai.AiResult
+import com.screentranslate.app.data.Flashcard
 import com.screentranslate.app.overlay.OverlayManager
 import com.screentranslate.app.pipeline.PipelineState
+import com.screentranslate.app.translation.TranslationResult
 import com.screentranslate.app.ui.MainActivity
 import com.screentranslate.app.util.DisplayMetricsHelper
 import com.screentranslate.app.util.appContainer
@@ -25,6 +29,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 class OverlayService : LifecycleService() {
@@ -38,6 +43,10 @@ class OverlayService : LifecycleService() {
     private lateinit var overlayManager: OverlayManager
     private var autoCaptureJob: Job? = null
     private val isCapturing = AtomicBoolean(false)
+
+    // Holds translation result from manual input so we can save it as a flashcard
+    private var pendingFlashcard: TranslationResult? = null
+    private var pendingAiResult: AiResult? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -69,8 +78,6 @@ class OverlayService : LifecycleService() {
         container.translationPipeline.screenSize = screenSize
         container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
 
-        // Wire up MediaProjection if the user granted screen recording.
-        // Must call startForeground() with the MEDIA_PROJECTION type BEFORE getMediaProjection().
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
         val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
         if (resultCode != -1 && resultData != null) {
@@ -101,11 +108,11 @@ class OverlayService : LifecycleService() {
                         triggerCapture()
                     }
                 },
+                onLongPress = { openManualInput() },
                 savedX = savedX,
                 savedY = savedY
             )
 
-            // Observe preferences changes
             launch {
                 container.preferencesRepository.targetLanguage.collect { lang ->
                     container.translationPipeline.targetLanguage = lang
@@ -135,9 +142,11 @@ class OverlayService : LifecycleService() {
                 when (state) {
                     is PipelineState.Complete -> {
                         overlayManager.setFabProcessing(false)
-                        overlayManager.showTranslations(state.results) { text, lang ->
-                            container.ttsManager.speak(text, lang)
-                        }
+                        overlayManager.showTranslations(
+                            results = state.results,
+                            onSpeak = { text, lang -> container.ttsManager.speak(text, lang) },
+                            onExpand = { result -> handleBubbleExpand(result) }
+                        )
                         isCapturing.set(false)
                     }
                     is PipelineState.Error -> {
@@ -154,6 +163,68 @@ class OverlayService : LifecycleService() {
                     else -> { /* Capturing, Processing, Translating */ }
                 }
             }
+        }
+    }
+
+    private fun handleBubbleExpand(result: TranslationResult) {
+        lifecycleScope.launch {
+            overlayManager.showAiDetailLoading(result, onClose = { overlayManager.hideAiDetail() })
+            val aiResult = fetchAiExamples(result)
+            overlayManager.updateAiDetailResult(aiResult)
+        }
+    }
+
+    private fun openManualInput() {
+        pendingFlashcard = null
+        pendingAiResult = null
+        overlayManager.showManualInput(
+            onTranslate = { text -> handleManualTranslate(text) },
+            onSaveFlashcard = { saveFlashcard() },
+            onClose = { overlayManager.hideManualInput() }
+        )
+    }
+
+    private fun handleManualTranslate(text: String) {
+        lifecycleScope.launch {
+            val targetLang = container.preferencesRepository.targetLanguage.first()
+            val result = container.translationRepository.translateText(text, targetLang)
+            pendingFlashcard = result
+            overlayManager.showManualInputResult(result.translatedText)
+
+            val aiResult = fetchAiExamples(result)
+            pendingAiResult = aiResult
+            overlayManager.showManualInputAiResult(aiResult)
+        }
+    }
+
+    private fun saveFlashcard() {
+        val result = pendingFlashcard ?: return
+        val ai = pendingAiResult ?: AiResult("", emptyList())
+        lifecycleScope.launch {
+            container.flashcardRepository.save(
+                Flashcard(
+                    id = UUID.randomUUID().toString(),
+                    originalText = result.originalText,
+                    translatedText = result.translatedText,
+                    sourceLang = result.sourceLang,
+                    targetLang = result.targetLang,
+                    definition = ai.definition,
+                    examples = ai.examples
+                )
+            )
+            Toast.makeText(this@OverlayService, getString(R.string.flashcard_saved), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun fetchAiExamples(result: TranslationResult): AiResult {
+        val provider = container.preferencesRepository.aiProvider.first()
+        val key = container.preferencesRepository.aiApiKey.first()
+        val explainer = AiExplainerFactory.create(provider, key) ?: return AiResult("", emptyList())
+        return try {
+            explainer.explain(result.originalText, result.translatedText, result.targetLang)
+        } catch (e: Exception) {
+            Log.e(TAG, "AI explain failed", e)
+            AiResult("", emptyList())
         }
     }
 

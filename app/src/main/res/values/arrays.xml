@@ -54,6 +54,20 @@
         <item>id</item>
     </string-array>
 
+    <string-array name="ai_provider_names">
+        <item>Disabled</item>
+        <item>OpenAI (GPT-4o mini)</item>
+        <item>DeepSeek (cheap)</item>
+        <item>Google Gemini</item>
+    </string-array>
+
+    <string-array name="ai_provider_values">
+        <item>none</item>
+        <item>openai</item>
+        <item>deepseek</item>
+        <item>gemini</item>
+    </string-array>
+
     <string-array name="auto_capture_intervals">
         <item>2 seconds</item>
         <item>3 seconds</item>

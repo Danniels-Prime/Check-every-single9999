@@ -25,6 +25,8 @@ class PreferencesRepository(private val context: Context) {
         val FAB_X = intPreferencesKey("fab_position_x")
         val FAB_Y = intPreferencesKey("fab_position_y")
         val DISPLAY_MODE = stringPreferencesKey("display_mode")
+        val AI_PROVIDER = stringPreferencesKey("ai_provider")
+        val AI_API_KEY = stringPreferencesKey("ai_api_key")
     }
 
     val targetLanguage: Flow<String> = context.dataStore.data.map { it[Keys.TARGET_LANGUAGE] ?: "en" }
@@ -34,6 +36,8 @@ class PreferencesRepository(private val context: Context) {
     val fabX: Flow<Int> = context.dataStore.data.map { it[Keys.FAB_X] ?: -1 }
     val fabY: Flow<Int> = context.dataStore.data.map { it[Keys.FAB_Y] ?: -1 }
     val displayMode: Flow<String> = context.dataStore.data.map { it[Keys.DISPLAY_MODE] ?: "bubbles" }
+    val aiProvider: Flow<String> = context.dataStore.data.map { it[Keys.AI_PROVIDER] ?: "none" }
+    val aiApiKey: Flow<String> = context.dataStore.data.map { it[Keys.AI_API_KEY] ?: "" }
 
     suspend fun setTargetLanguage(code: String) = context.dataStore.edit { it[Keys.TARGET_LANGUAGE] = code }
     suspend fun setOverlayOpacity(opacity: Float) = context.dataStore.edit { it[Keys.OVERLAY_OPACITY] = opacity }
@@ -44,4 +48,6 @@ class PreferencesRepository(private val context: Context) {
         prefs[Keys.FAB_Y] = y
     }
     suspend fun setDisplayMode(mode: String) = context.dataStore.edit { it[Keys.DISPLAY_MODE] = mode }
+    suspend fun setAiProvider(provider: String) = context.dataStore.edit { it[Keys.AI_PROVIDER] = provider }
+    suspend fun setAiApiKey(key: String) = context.dataStore.edit { it[Keys.AI_API_KEY] = key }
 }

@@ -14,7 +14,8 @@ class TranslationBubbleView(
     private val windowManager: WindowManager,
     private val result: TranslationResult,
     private val opacity: Float,
-    private val onSpeak: (text: String, lang: String) -> Unit
+    private val onSpeak: (text: String, lang: String) -> Unit,
+    private val onExpand: (TranslationResult) -> Unit
 ) {
 
     private val binding = ItemTranslationBubbleBinding.inflate(
@@ -42,6 +43,9 @@ class TranslationBubbleView(
 
         binding.btnSpeak.setOnClickListener {
             onSpeak(result.translatedText, result.targetLang)
+        }
+        binding.root.setOnClickListener {
+            onExpand(result)
         }
     }
 

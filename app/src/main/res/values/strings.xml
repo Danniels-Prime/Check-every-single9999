@@ -40,6 +40,32 @@
     <string name="translation_error">Translation failed</string>
     <string name="original_text">Original: %1$s</string>
 
+    <!-- AI detail overlay -->
+    <string name="ai_detail_title">AI Explanation</string>
+    <string name="ai_original_label">ORIGINAL</string>
+    <string name="ai_translation_label">TRANSLATION</string>
+    <string name="ai_definition_label">DEFINITION</string>
+    <string name="ai_examples_label">USAGE EXAMPLES</string>
+    <string name="ai_unavailable">Set an AI provider in Settings to see explanations</string>
+
+    <!-- Manual input overlay -->
+    <string name="manual_input_title">Manual Translate</string>
+    <string name="manual_input_hint">Type text to translate…</string>
+    <string name="manual_input_translate">Translate</string>
+
+    <!-- Flashcards -->
+    <string name="flashcards_title">My Flashcards</string>
+    <string name="flashcards_empty">No flashcards yet.\nLong-press the floating button to open manual translate, then save a card.</string>
+    <string name="save_flashcard">Save as Flashcard</string>
+    <string name="flashcard_saved">Saved to flashcards</string>
+    <string name="export_flashcards">Export CSV</string>
+    <string name="btn_flashcards">My Flashcards</string>
+
+    <!-- AI Settings -->
+    <string name="pref_ai_provider">AI Provider</string>
+    <string name="pref_ai_api_key">AI API Key</string>
+    <string name="pref_ai_api_key_summary">Paste your API key for the selected provider</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="pref_target_language">Target Language</string>

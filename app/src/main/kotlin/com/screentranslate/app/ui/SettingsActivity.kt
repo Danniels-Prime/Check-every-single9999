@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -121,11 +122,40 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
 
+            // AI provider
+            val aiProviderPref = ListPreference(context).apply {
+                key = "ai_provider"
+                title = getString(R.string.pref_ai_provider)
+                entries = resources.getStringArray(R.array.ai_provider_names)
+                entryValues = resources.getStringArray(R.array.ai_provider_values)
+                setOnPreferenceChangeListener { _, newValue ->
+                    lifecycleScope.launch {
+                        container.preferencesRepository.setAiProvider(newValue as String)
+                    }
+                    true
+                }
+            }
+
+            // AI API key
+            val aiKeyPref = EditTextPreference(context).apply {
+                key = "ai_api_key"
+                title = getString(R.string.pref_ai_api_key)
+                summary = getString(R.string.pref_ai_api_key_summary)
+                setOnPreferenceChangeListener { _, newValue ->
+                    lifecycleScope.launch {
+                        container.preferencesRepository.setAiApiKey(newValue as String)
+                    }
+                    true
+                }
+            }
+
             screen.addPreference(languagePref)
             screen.addPreference(opacityPref)
             screen.addPreference(autoCapturePref)
             screen.addPreference(intervalPref)
             screen.addPreference(downloadPref)
+            screen.addPreference(aiProviderPref)
+            screen.addPreference(aiKeyPref)
 
             preferenceScreen = screen
 
@@ -135,6 +165,7 @@ class SettingsActivity : AppCompatActivity() {
                 opacityPref.value = (container.preferencesRepository.overlayOpacity.first() * 100).toInt()
                 autoCapturePref.isChecked = container.preferencesRepository.autoCapture.first()
                 intervalPref.value = container.preferencesRepository.autoCaptureInterval.first().toString()
+                aiProviderPref.value = container.preferencesRepository.aiProvider.first()
             }
         }
     }

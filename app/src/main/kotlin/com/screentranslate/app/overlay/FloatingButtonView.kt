@@ -19,6 +19,7 @@ class FloatingButtonView(
     private val context: Context,
     private val windowManager: WindowManager,
     private val onTap: () -> Unit,
+    private val onLongPress: () -> Unit = {},
     private val onSavedPosition: (x: Int, y: Int) -> Unit
 ) {
 
@@ -45,6 +46,7 @@ class FloatingButtonView(
     private val touchSlop = DisplayMetricsHelper.dpToPx(context, 8f)
 
     init {
+        binding.root.setOnLongClickListener { onLongPress(); true }
         binding.root.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {

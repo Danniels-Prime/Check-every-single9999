@@ -1,5 +1,6 @@
 package com.screentranslate.app.translation
 
+import android.graphics.Rect
 import android.util.Log
 import com.screentranslate.app.ocr.TextBlockData
 
@@ -26,6 +27,12 @@ class TranslationRepository(
         return blocks.mapNotNull { block ->
             translateBlock(block, sourceLang, targetLanguage)
         }
+    }
+
+    suspend fun translateText(text: String, targetLang: String): TranslationResult {
+        val sourceLang = detector.detect(text)
+        val translated = tryTranslate(text, sourceLang, targetLang) ?: "[Translation failed]"
+        return TranslationResult(text, translated, sourceLang, targetLang, Rect())
     }
 
     private suspend fun translateBlock(

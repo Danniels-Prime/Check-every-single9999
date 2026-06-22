@@ -33,6 +33,11 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
+        <activity
+            android:name=".ui.FlashcardsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
+
         <service
             android:name=".service.OverlayService"
             android:exported="false"

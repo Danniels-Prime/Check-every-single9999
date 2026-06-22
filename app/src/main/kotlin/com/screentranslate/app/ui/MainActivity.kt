@@ -121,6 +121,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnSettings.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+
+        binding.btnFlashcards.setOnClickListener {
+            startActivity(Intent(this, FlashcardsActivity::class.java))
+        }
     }
 
     private fun startTranslation() {
