@@ -1,6 +1,7 @@
 package com.screentranslate.app.overlay
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.PixelFormat
 import android.view.ContextThemeWrapper
 import android.view.Gravity
@@ -85,6 +86,12 @@ class FloatingButtonView(
         params.y = max(0, min(params.y, screenSize.y - binding.root.height))
         windowManager.updateViewLayout(binding.root, params)
         onSavedPosition(params.x, params.y)
+    }
+
+    fun setProcessing(isProcessing: Boolean) {
+        val color = if (isProcessing) 0xFF9E9E9E.toInt() else 0xFF1565C0.toInt()
+        binding.fab.backgroundTintList = ColorStateList.valueOf(color)
+        binding.fab.isEnabled = !isProcessing
     }
 
     fun setPosition(x: Int, y: Int) {

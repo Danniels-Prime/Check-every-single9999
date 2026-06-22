@@ -51,6 +51,10 @@ class OverlayManager(
         }
     }
 
+    fun setFabProcessing(isProcessing: Boolean) {
+        fabView?.setProcessing(isProcessing)
+    }
+
     fun clearBubbles() {
         bubbles.forEach { it.removeFromWindow() }
         bubbles.clear()

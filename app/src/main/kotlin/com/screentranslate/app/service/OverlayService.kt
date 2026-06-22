@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
@@ -122,21 +123,27 @@ class OverlayService : LifecycleService() {
 
         lifecycleScope.launch {
             overlayManager.clearBubbles()
+            overlayManager.setFabProcessing(true)
 
             container.translationPipeline.executeCapture().collect { state ->
                 when (state) {
                     is PipelineState.Complete -> {
+                        overlayManager.setFabProcessing(false)
                         overlayManager.showTranslations(state.results)
                         isCapturing.set(false)
                     }
                     is PipelineState.Error -> {
+                        overlayManager.setFabProcessing(false)
                         Log.e(TAG, "Pipeline error: ${state.message}", state.cause)
+                        Toast.makeText(this@OverlayService, state.message, Toast.LENGTH_LONG).show()
                         isCapturing.set(false)
                     }
                     is PipelineState.NoTextFound -> {
+                        overlayManager.setFabProcessing(false)
+                        Toast.makeText(this@OverlayService, getString(R.string.no_text_found), Toast.LENGTH_SHORT).show()
                         isCapturing.set(false)
                     }
-                    else -> { /* Capturing, Processing, Translating — no UI action needed */ }
+                    else -> { /* Capturing, Processing, Translating */ }
                 }
             }
         }
