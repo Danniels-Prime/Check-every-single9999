@@ -14,12 +14,17 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.screentranslate.app.R
 import com.screentranslate.app.databinding.ActivityMainBinding
 import com.screentranslate.app.service.OverlayService
 import com.screentranslate.app.service.TranslationAccessibilityService
 import com.screentranslate.app.util.PermissionHelper
+import com.screentranslate.app.util.appContainer
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -77,6 +82,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Apply saved app theme before inflating layout
+        lifecycleScope.launch {
+            val theme = application.appContainer.preferencesRepository.appTheme.first()
+            val mode = when (theme) {
+                "light" -> AppCompatDelegate.MODE_NIGHT_NO
+                "dark"  -> AppCompatDelegate.MODE_NIGHT_YES
+                else    -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            AppCompatDelegate.setDefaultNightMode(mode)
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -124,6 +141,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnFlashcards.setOnClickListener {
             startActivity(Intent(this, FlashcardsActivity::class.java))
+        }
+
+        binding.btnHistory.setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
         }
     }
 

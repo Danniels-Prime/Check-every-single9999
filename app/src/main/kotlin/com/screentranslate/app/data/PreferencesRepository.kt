@@ -27,6 +27,8 @@ class PreferencesRepository(private val context: Context) {
         val DISPLAY_MODE = stringPreferencesKey("display_mode")
         val AI_PROVIDER = stringPreferencesKey("ai_provider")
         val AI_API_KEY = stringPreferencesKey("ai_api_key")
+        val OVERLAY_THEME = stringPreferencesKey("overlay_theme")
+        val APP_THEME = stringPreferencesKey("app_theme")
     }
 
     val targetLanguage: Flow<String> = context.dataStore.data.map { it[Keys.TARGET_LANGUAGE] ?: "en" }
@@ -38,6 +40,8 @@ class PreferencesRepository(private val context: Context) {
     val displayMode: Flow<String> = context.dataStore.data.map { it[Keys.DISPLAY_MODE] ?: "bubbles" }
     val aiProvider: Flow<String> = context.dataStore.data.map { it[Keys.AI_PROVIDER] ?: "none" }
     val aiApiKey: Flow<String> = context.dataStore.data.map { it[Keys.AI_API_KEY] ?: "" }
+    val overlayTheme: Flow<String> = context.dataStore.data.map { it[Keys.OVERLAY_THEME] ?: "blue" }
+    val appTheme: Flow<String> = context.dataStore.data.map { it[Keys.APP_THEME] ?: "system" }
 
     suspend fun setTargetLanguage(code: String) = context.dataStore.edit { it[Keys.TARGET_LANGUAGE] = code }
     suspend fun setOverlayOpacity(opacity: Float) = context.dataStore.edit { it[Keys.OVERLAY_OPACITY] = opacity }
@@ -50,4 +54,6 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setDisplayMode(mode: String) = context.dataStore.edit { it[Keys.DISPLAY_MODE] = mode }
     suspend fun setAiProvider(provider: String) = context.dataStore.edit { it[Keys.AI_PROVIDER] = provider }
     suspend fun setAiApiKey(key: String) = context.dataStore.edit { it[Keys.AI_API_KEY] = key }
+    suspend fun setOverlayTheme(theme: String) = context.dataStore.edit { it[Keys.OVERLAY_THEME] = theme }
+    suspend fun setAppTheme(theme: String) = context.dataStore.edit { it[Keys.APP_THEME] = theme }
 }

@@ -138,12 +138,31 @@
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnSaveFlashcard"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/save_flashcard" />
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnSaveFlashcard"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="@string/save_flashcard" />
+
+            <Button
+                android:id="@+id/btnShare"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="@string/share_translation"
+                android:visibility="gone" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

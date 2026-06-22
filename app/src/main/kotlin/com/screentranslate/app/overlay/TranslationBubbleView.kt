@@ -15,7 +15,9 @@ class TranslationBubbleView(
     private val result: TranslationResult,
     private val opacity: Float,
     private val onSpeak: (text: String, lang: String) -> Unit,
-    private val onExpand: (TranslationResult) -> Unit
+    private val onExpand: (TranslationResult) -> Unit,
+    private val bubbleBgColor: Int = 0xCC1565C0.toInt(),
+    private val bubbleTextColor: Int = 0xFFFFFFFF.toInt()
 ) {
 
     private val binding = ItemTranslationBubbleBinding.inflate(
@@ -40,6 +42,8 @@ class TranslationBubbleView(
         binding.tvTranslated.text = result.translatedText
         binding.tvOriginal.text = context.getString(R.string.original_text, result.originalText)
         binding.root.alpha = opacity
+        binding.root.setBackgroundColor(bubbleBgColor)
+        binding.tvTranslated.setTextColor(bubbleTextColor)
 
         binding.btnSpeak.setOnClickListener {
             onSpeak(result.translatedText, result.targetLang)

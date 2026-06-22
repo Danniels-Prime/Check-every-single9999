@@ -17,7 +17,8 @@ class ManualInputView(
     private val windowManager: WindowManager,
     private val onTranslate: (String) -> Unit,
     private val onSaveFlashcard: () -> Unit,
-    private val onClose: () -> Unit
+    private val onClose: () -> Unit,
+    private val onShare: ((original: String, translated: String, examples: List<String>) -> Unit)? = null
 ) {
 
     private val themedContext = ContextThemeWrapper(context, R.style.Theme_ScreenTranslate)
@@ -36,6 +37,10 @@ class ManualInputView(
         it.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
     }
 
+    private var lastOriginal = ""
+    private var lastTranslated = ""
+    private var lastExamples = listOf<String>()
+
     init {
         binding.btnClose.setOnClickListener {
             hideKeyboard()
@@ -44,22 +49,29 @@ class ManualInputView(
         binding.btnTranslate.setOnClickListener {
             val text = binding.etInput.text.toString().trim()
             if (text.isNotBlank()) {
+                lastOriginal = text
                 hideKeyboard()
                 onTranslate(text)
             }
         }
         binding.btnSaveFlashcard.setOnClickListener { onSaveFlashcard() }
+        binding.btnShare.setOnClickListener {
+            onShare?.invoke(lastOriginal, lastTranslated, lastExamples)
+        }
     }
 
     fun showResult(translated: String) {
+        lastTranslated = translated
         binding.tvTranslated.text = translated
         binding.layoutResult.visibility = View.VISIBLE
         binding.layoutAi.visibility = View.GONE
         binding.btnSaveFlashcard.visibility = View.VISIBLE
+        binding.btnShare.visibility = View.VISIBLE
     }
 
     fun showAiResult(aiResult: AiResult) {
         if (aiResult.definition.isNotBlank() || aiResult.examples.isNotEmpty()) {
+            lastExamples = aiResult.examples
             binding.tvDefinition.text = aiResult.definition
             binding.tvExamples.text = aiResult.examples
                 .mapIndexed { i, ex -> "${i + 1}. $ex" }

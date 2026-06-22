@@ -16,7 +16,8 @@ class AiDetailView(
     context: Context,
     private val windowManager: WindowManager,
     private val result: TranslationResult,
-    private val onClose: () -> Unit
+    private val onClose: () -> Unit,
+    private val onShare: ((original: String, translated: String, examples: List<String>) -> Unit)? = null
 ) {
 
     private val binding = OverlayAiDetailBinding.inflate(
@@ -34,11 +35,17 @@ class AiDetailView(
         it.gravity = Gravity.TOP or Gravity.START
     }
 
+    private var lastAiResult: AiResult? = null
+
     init {
         binding.tvOriginal.text = result.originalText
         binding.tvTranslated.text = result.translatedText
         binding.btnClose.setOnClickListener { onClose() }
         binding.root.setOnClickListener { onClose() }
+        binding.btnShare.setOnClickListener {
+            val examples = lastAiResult?.examples ?: emptyList()
+            onShare?.invoke(result.originalText, result.translatedText, examples)
+        }
     }
 
     fun showLoading() {
@@ -48,6 +55,7 @@ class AiDetailView(
     }
 
     fun showResult(aiResult: AiResult) {
+        lastAiResult = aiResult
         binding.progressBar.visibility = View.GONE
         if (aiResult.definition.isBlank() && aiResult.examples.isEmpty()) {
             binding.tvAiError.text = binding.root.context.getString(R.string.ai_unavailable)

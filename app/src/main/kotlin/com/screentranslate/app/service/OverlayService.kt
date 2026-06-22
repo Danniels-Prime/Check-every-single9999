@@ -19,11 +19,13 @@ import com.screentranslate.app.ScreenTranslateApp
 import com.screentranslate.app.ai.AiExplainerFactory
 import com.screentranslate.app.ai.AiResult
 import com.screentranslate.app.data.Flashcard
+import com.screentranslate.app.data.HistoryEntry
 import com.screentranslate.app.overlay.OverlayManager
 import com.screentranslate.app.pipeline.PipelineState
 import com.screentranslate.app.translation.TranslationResult
 import com.screentranslate.app.ui.MainActivity
 import com.screentranslate.app.util.DisplayMetricsHelper
+import com.screentranslate.app.util.ShareCardHelper
 import com.screentranslate.app.util.appContainer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,6 +58,12 @@ class OverlayService : LifecycleService() {
         overlayManager.setOnFabPositionSaved { x, y ->
             lifecycleScope.launch {
                 container.preferencesRepository.setFabPosition(x, y)
+            }
+        }
+        overlayManager.setOnShareCallback { original, translated, examples ->
+            lifecycleScope.launch {
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                ShareCardHelper.share(this@OverlayService, original, translated, "ru", targetLang, examples)
             }
         }
         startForegroundWithNotification()
@@ -128,6 +136,11 @@ class OverlayService : LifecycleService() {
                     if (enabled) startAutoCapture() else stopAutoCapture()
                 }
             }
+            launch {
+                container.preferencesRepository.overlayTheme.collect { theme ->
+                    overlayManager.applyTheme(theme)
+                }
+            }
         }
     }
 
@@ -147,6 +160,16 @@ class OverlayService : LifecycleService() {
                             onSpeak = { text, lang -> container.ttsManager.speak(text, lang) },
                             onExpand = { result -> handleBubbleExpand(result) }
                         )
+                        state.results.forEach { result ->
+                            container.historyRepository.save(
+                                HistoryEntry(
+                                    originalText = result.originalText,
+                                    translatedText = result.translatedText,
+                                    sourceLang = result.sourceLang,
+                                    targetLang = result.targetLang
+                                )
+                            )
+                        }
                         isCapturing.set(false)
                     }
                     is PipelineState.Error -> {

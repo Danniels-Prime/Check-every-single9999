@@ -10,6 +10,7 @@ import com.screentranslate.app.translation.LanguageDetector
 import com.screentranslate.app.translation.MlKitTranslator
 import com.screentranslate.app.translation.TranslationRepository
 import com.screentranslate.app.data.FlashcardRepository
+import com.screentranslate.app.data.HistoryRepository
 import com.screentranslate.app.util.CoroutineDispatchers
 import com.screentranslate.app.util.TtsManager
 
@@ -23,6 +24,7 @@ class AppContainer(val app: Application) {
     val translationRepository = TranslationRepository(mlKitTranslator, googleTranslateApi, languageDetector)
     val ttsManager = TtsManager(app)
     val flashcardRepository = FlashcardRepository(app)
+    val historyRepository = HistoryRepository(app)
     val screenCaptureManager = ScreenCaptureManager(app)
     val translationPipeline = TranslationPipeline(
         screenCaptureManager,

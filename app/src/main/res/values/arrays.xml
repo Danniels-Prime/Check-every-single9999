@@ -81,4 +81,32 @@
         <item>5000</item>
         <item>10000</item>
     </string-array>
+
+    <string-array name="app_theme_names">
+        <item>System Default</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+
+    <string-array name="app_theme_values">
+        <item>system</item>
+        <item>light</item>
+        <item>dark</item>
+    </string-array>
+
+    <string-array name="overlay_theme_names">
+        <item>Classic Blue</item>
+        <item>Dark Purple</item>
+        <item>Forest Green</item>
+        <item>Sunset Orange</item>
+        <item>Minimal White</item>
+    </string-array>
+
+    <string-array name="overlay_theme_values">
+        <item>blue</item>
+        <item>purple</item>
+        <item>green</item>
+        <item>orange</item>
+        <item>white</item>
+    </string-array>
 </resources>

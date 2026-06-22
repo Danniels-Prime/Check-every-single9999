@@ -148,6 +148,15 @@
                     android:textColor="@color/error"
                     android:visibility="gone" />
 
+                <!-- Share button -->
+                <Button
+                    android:id="@+id/btnShare"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/share_translation" />
+
             </LinearLayout>
         </ScrollView>
     </androidx.cardview.widget.CardView>
