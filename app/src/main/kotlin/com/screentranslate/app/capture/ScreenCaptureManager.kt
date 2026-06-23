@@ -9,22 +9,30 @@ import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.util.Log
+import com.screentranslate.app.service.TranslationAccessibilityService
 import com.screentranslate.app.util.DisplayMetricsHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
 
 class ScreenCaptureManager(private val context: Context) {
 
     private var mediaProjection: MediaProjection? = null
     private var imageReader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
-    private var isSetUp = false
+    private var isMediaProjectionSetUp = false
+
+    val isInitialized: Boolean
+        get() = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                TranslationAccessibilityService.instance != null) || isMediaProjectionSetUp
 
     fun initialize(resultCode: Int, data: Intent) {
         val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        release()
+        releaseMediaProjection()
         mediaProjection = mgr.getMediaProjection(resultCode, data)
         setupVirtualDisplay()
     }
@@ -34,50 +42,60 @@ class ScreenCaptureManager(private val context: Context) {
         val screenSize = DisplayMetricsHelper.getScreenSize(context)
         val density = context.resources.displayMetrics.densityDpi
 
-        imageReader = ImageReader.newInstance(
-            screenSize.x, screenSize.y,
-            PixelFormat.RGBA_8888, 2
-        )
-
+        imageReader = ImageReader.newInstance(screenSize.x, screenSize.y, PixelFormat.RGBA_8888, 2)
         virtualDisplay = mp.createVirtualDisplay(
             "ScreenTranslateCapture",
             screenSize.x, screenSize.y, density,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             imageReader!!.surface, null, null
         )
-        isSetUp = true
+        isMediaProjectionSetUp = true
     }
 
-    suspend fun captureScreen(): CaptureResult = withContext(Dispatchers.IO) {
-        if (!isSetUp || imageReader == null) {
-            return@withContext CaptureResult.NotInitialized
+    suspend fun captureScreen(): CaptureResult {
+        // Primary: Accessibility service — silent, no dialog, works on API 30+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val a11y = TranslationAccessibilityService.instance
+            if (a11y != null) {
+                val bitmap: Bitmap? = withContext(Dispatchers.Main) {
+                    suspendCancellableCoroutine { cont ->
+                        a11y.requestScreenshot { bmp -> cont.resume(bmp) }
+                    }
+                }
+                if (bitmap != null) {
+                    val scaled = withContext(Dispatchers.IO) { ImageConverter.scaleBitmapIfNeeded(bitmap) }
+                    return CaptureResult.Success(scaled)
+                }
+            }
         }
 
-        // Small delay to let the virtual display render current screen content
+        // Fallback: MediaProjection — works on all API levels, requires one-time consent dialog
+        if (!isMediaProjectionSetUp || imageReader == null) {
+            return CaptureResult.NotInitialized
+        }
+
         delay(100)
-
-        return@withContext try {
+        return try {
             val image = imageReader!!.acquireLatestImage()
-                ?: return@withContext CaptureResult.Error("No image available yet")
-
+                ?: return CaptureResult.Error("No image available yet")
             val bitmap = try {
                 ImageConverter.imageToBitmap(image)
             } finally {
                 image.close()
             }
-
-            val scaled = ImageConverter.scaleBitmapIfNeeded(bitmap)
-            CaptureResult.Success(scaled)
+            CaptureResult.Success(ImageConverter.scaleBitmapIfNeeded(bitmap))
         } catch (e: Exception) {
-            Log.e(TAG, "Screen capture failed", e)
+            Log.e(TAG, "MediaProjection capture failed", e)
             CaptureResult.Error("Capture failed: ${e.message}", e)
         }
     }
 
-    val isInitialized: Boolean get() = isSetUp && mediaProjection != null
-
     fun release() {
-        isSetUp = false
+        releaseMediaProjection()
+    }
+
+    private fun releaseMediaProjection() {
+        isMediaProjectionSetUp = false
         virtualDisplay?.release()
         virtualDisplay = null
         imageReader?.close()

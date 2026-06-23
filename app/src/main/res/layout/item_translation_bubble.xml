@@ -7,13 +7,32 @@
     android:padding="6dp"
     android:maxWidth="280dp">
 
-    <TextView
-        android:id="@+id/tvTranslated"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/bubble_text"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvTranslated"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/bubble_text"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnSpeak"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_volume_up"
+            android:contentDescription="Speak translation"
+            android:padding="2dp" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvOriginal"
@@ -21,6 +40,7 @@
         android:layout_height="wrap_content"
         android:textColor="@color/bubble_original_text"
         android:textSize="11sp"
-        android:visibility="gone" />
+        android:layout_marginTop="2dp"
+        android:visibility="visible" />
 
 </LinearLayout>

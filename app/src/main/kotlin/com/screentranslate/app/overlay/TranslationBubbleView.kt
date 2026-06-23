@@ -2,8 +2,10 @@ package com.screentranslate.app.overlay
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.WindowManager
+import com.screentranslate.app.R
 import com.screentranslate.app.databinding.ItemTranslationBubbleBinding
 import com.screentranslate.app.translation.TranslationResult
 
@@ -11,10 +13,16 @@ class TranslationBubbleView(
     private val context: Context,
     private val windowManager: WindowManager,
     private val result: TranslationResult,
-    private val opacity: Float
+    private val opacity: Float,
+    private val onSpeak: (text: String, lang: String) -> Unit,
+    private val onExpand: (TranslationResult) -> Unit,
+    private val bubbleBgColor: Int = 0xCC1565C0.toInt(),
+    private val bubbleTextColor: Int = 0xFFFFFFFF.toInt()
 ) {
 
-    private val binding = ItemTranslationBubbleBinding.inflate(LayoutInflater.from(context))
+    private val binding = ItemTranslationBubbleBinding.inflate(
+        LayoutInflater.from(ContextThemeWrapper(context, R.style.Theme_ScreenTranslate))
+    )
 
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -32,20 +40,16 @@ class TranslationBubbleView(
 
     init {
         binding.tvTranslated.text = result.translatedText
-        binding.tvOriginal.text = context.getString(
-            com.screentranslate.app.R.string.original_text,
-            result.originalText
-        )
+        binding.tvOriginal.text = context.getString(R.string.original_text, result.originalText)
         binding.root.alpha = opacity
+        binding.root.setBackgroundColor(bubbleBgColor)
+        binding.tvTranslated.setTextColor(bubbleTextColor)
 
-        // Toggle original text visibility on tap
+        binding.btnSpeak.setOnClickListener {
+            onSpeak(result.translatedText, result.targetLang)
+        }
         binding.root.setOnClickListener {
-            val isVisible = binding.tvOriginal.visibility == android.view.View.VISIBLE
-            binding.tvOriginal.visibility = if (isVisible) {
-                android.view.View.GONE
-            } else {
-                android.view.View.VISIBLE
-            }
+            onExpand(result)
         }
     }
 

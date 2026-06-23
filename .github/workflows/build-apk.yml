@@ -1,0 +1,67 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - claude/realtime-screen-translation-qkxvmw
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle 8.4
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4'
+
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Build Debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          TRANSLATE_API_KEY: ''
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenTranslate-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Create or Update Latest Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Screen Translate — Latest APK"
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            ## Download & Install
+
+            1. Tap **app-debug.apk** below to download
+            2. Open the file on your Android phone
+            3. If blocked → Settings → **Allow from this source** → Install
+            4. Open the app → grant 3 permissions → tap **Start Translating**
+            5. A floating button now lives on top of EVERY app on your phone
+            6. Tap it anytime to translate whatever is on your screen

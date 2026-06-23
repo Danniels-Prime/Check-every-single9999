@@ -8,9 +8,12 @@
     <string name="permission_overlay_grant">Grant Overlay Permission</string>
     <string name="permission_notification_title">Notification Permission Required</string>
     <string name="permission_notification_desc">Required to keep the translation service running in the background.</string>
-    <string name="permission_screen_title">Screen Capture Permission</string>
-    <string name="permission_screen_desc">Required to capture your screen for translation. Tap to grant.</string>
-    <string name="permission_screen_grant">Grant Screen Capture</string>
+    <string name="permission_screen_title">Accessibility Service</string>
+    <string name="permission_screen_desc">Required to read your screen for translation. Tap to open Settings → Accessibility → Screen Translate and enable it.</string>
+    <string name="permission_screen_grant">Open Accessibility Settings</string>
+    <string name="accessibility_service_description">Reads your screen to provide real-time translation. Screen Translate never stores or shares your screenshots.</string>
+    <string name="permission_screen_record_title">Screen Recording (optional)</string>
+    <string name="permission_screen_record_grant">Grant Screen Recording</string>
     <string name="permission_granted">Granted</string>
     <string name="permission_denied">Not Granted</string>
 
@@ -37,6 +40,32 @@
     <string name="translation_error">Translation failed</string>
     <string name="original_text">Original: %1$s</string>
 
+    <!-- AI detail overlay -->
+    <string name="ai_detail_title">AI Explanation</string>
+    <string name="ai_original_label">ORIGINAL</string>
+    <string name="ai_translation_label">TRANSLATION</string>
+    <string name="ai_definition_label">DEFINITION</string>
+    <string name="ai_examples_label">USAGE EXAMPLES</string>
+    <string name="ai_unavailable">Set an AI provider in Settings to see explanations</string>
+
+    <!-- Manual input overlay -->
+    <string name="manual_input_title">Manual Translate</string>
+    <string name="manual_input_hint">Type text to translate…</string>
+    <string name="manual_input_translate">Translate</string>
+
+    <!-- Flashcards -->
+    <string name="flashcards_title">My Flashcards</string>
+    <string name="flashcards_empty">No flashcards yet.\nLong-press the floating button to open manual translate, then save a card.</string>
+    <string name="save_flashcard">Save as Flashcard</string>
+    <string name="flashcard_saved">Saved to flashcards</string>
+    <string name="export_flashcards">Export CSV</string>
+    <string name="btn_flashcards">My Flashcards</string>
+
+    <!-- AI Settings -->
+    <string name="pref_ai_provider">AI Provider</string>
+    <string name="pref_ai_api_key">AI API Key</string>
+    <string name="pref_ai_api_key_summary">Paste your API key for the selected provider</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="pref_target_language">Target Language</string>
@@ -54,4 +83,56 @@
     <string name="model_download_success">Language model downloaded</string>
     <string name="model_download_failed">Download failed — check your connection</string>
     <string name="model_downloading">Downloading language model…</string>
+
+    <!-- Translation History -->
+    <string name="history_title">Translation History</string>
+    <string name="history_empty">No translations yet.\nTap the floating button to translate a screen.</string>
+    <string name="history_clear_title">Clear History</string>
+    <string name="history_clear_confirm">Delete all translation history? This cannot be undone.</string>
+    <string name="clear">Clear</string>
+    <string name="delete">Delete</string>
+    <string name="btn_history">History</string>
+
+    <!-- Themes -->
+    <string name="pref_app_theme">App Theme</string>
+    <string name="pref_overlay_theme">Overlay Color Theme</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Shows your word of the day from saved flashcards</string>
+    <string name="widget_no_cards">No flashcards yet</string>
+    <string name="widget_no_cards_sub">Save cards in the app</string>
+    <string name="widget_tap_hint">Tap to review flashcards</string>
+
+    <!-- Share -->
+    <string name="share_translation">Share</string>
+
+    <!-- Vocab import -->
+    <string name="pref_import_vocab">Import Vocabulary Pack</string>
+    <string name="pref_import_vocab_summary">500 Russian-English phrases with examples (Omega Language Codex)</string>
+    <string name="vocab_importing">Importing vocabulary…</string>
+    <string name="vocab_imported">Imported %1$d phrases to flashcards</string>
+
+    <!-- SRS Flashcard Review -->
+    <string name="review_title">Flashcard Review</string>
+    <string name="review_progress">%1$d / %2$d cards</string>
+    <string name="review_show_answer">Show Answer</string>
+    <string name="review_again">Again</string>
+    <string name="review_hard">Hard</string>
+    <string name="review_good">Good</string>
+    <string name="review_easy">Easy</string>
+    <string name="review_done_summary">%1$d cards reviewed!</string>
+    <string name="review_done_close">Close</string>
+    <string name="review_no_cards_due">All caught up! No cards due for review.</string>
+    <string name="review_button">Review (%1$d due)</string>
+    <string name="review_button_zero">Review (no cards due)</string>
+
+    <!-- Clipboard Auto-Translate -->
+    <string name="pref_clipboard_monitoring">Clipboard Auto-Translate</string>
+    <string name="pref_clipboard_monitoring_summary">Translate foreign text when copied from other apps</string>
+
+    <!-- Camera Translate -->
+    <string name="btn_camera_translate">Camera Translate</string>
+    <string name="camera_translate_hint">Point camera at text to translate</string>
+    <string name="camera_permission_denied">Camera permission required for live translation</string>
+    <string name="back">Back</string>
 </resources>

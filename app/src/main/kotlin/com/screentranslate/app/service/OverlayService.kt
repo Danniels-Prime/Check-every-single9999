@@ -1,26 +1,39 @@
 package com.screentranslate.app.service
 
 import android.app.PendingIntent
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.screentranslate.app.AppContainer
 import com.screentranslate.app.R
 import com.screentranslate.app.ScreenTranslateApp
+import com.screentranslate.app.ai.AiExplainerFactory
+import com.screentranslate.app.ai.AiResult
+import com.screentranslate.app.data.Flashcard
+import com.screentranslate.app.data.HistoryEntry
 import com.screentranslate.app.overlay.OverlayManager
 import com.screentranslate.app.pipeline.PipelineState
+import com.screentranslate.app.translation.TranslationResult
 import com.screentranslate.app.ui.MainActivity
 import com.screentranslate.app.util.DisplayMetricsHelper
+import com.screentranslate.app.util.ShareCardHelper
 import com.screentranslate.app.util.appContainer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 class OverlayService : LifecycleService() {
@@ -33,7 +46,17 @@ class OverlayService : LifecycleService() {
     private lateinit var container: AppContainer
     private lateinit var overlayManager: OverlayManager
     private var autoCaptureJob: Job? = null
+    private var captureJob: Job? = null
     private val isCapturing = AtomicBoolean(false)
+    private val captureGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+
+    private var clipboardManager: ClipboardManager? = null
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    private var lastClipText = ""
+
+    // Holds translation result from manual input so we can save it as a flashcard
+    private var pendingFlashcard: TranslationResult? = null
+    private var pendingAiResult: AiResult? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -43,6 +66,12 @@ class OverlayService : LifecycleService() {
         overlayManager.setOnFabPositionSaved { x, y ->
             lifecycleScope.launch {
                 container.preferencesRepository.setFabPosition(x, y)
+            }
+        }
+        overlayManager.setOnShareCallback { original, translated, examples ->
+            lifecycleScope.launch {
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                ShareCardHelper.share(this@OverlayService, original, translated, "ru", targetLang, examples)
             }
         }
         startForegroundWithNotification()
@@ -61,15 +90,23 @@ class OverlayService : LifecycleService() {
     }
 
     private fun handleStart(intent: Intent) {
+        val screenSize = DisplayMetricsHelper.getScreenSize(this)
+        container.translationPipeline.screenSize = screenSize
+        container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
+
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
         val resultData = intent.getParcelableExtra<Intent>(EXTRA_RESULT_DATA)
-
         if (resultCode != -1 && resultData != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceCompat.startForeground(
+                    this,
+                    ScreenTranslateApp.NOTIFICATION_ID,
+                    buildNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            }
             container.screenCaptureManager.initialize(resultCode, resultData)
-
-            val screenSize = DisplayMetricsHelper.getScreenSize(this)
-            container.translationPipeline.screenSize = screenSize
-            container.translationPipeline.statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(this)
         }
 
         lifecycleScope.launch {
@@ -80,12 +117,12 @@ class OverlayService : LifecycleService() {
             container.translationPipeline.targetLanguage = targetLang
 
             overlayManager.showFab(
-                onTap = { triggerCapture() },
+                onTap = { triggerCapture(forceStart = true) },
+                onLongPress = { openManualInput() },
                 savedX = savedX,
                 savedY = savedY
             )
 
-            // Observe preferences changes
             launch {
                 container.preferencesRepository.targetLanguage.collect { lang ->
                     container.translationPipeline.targetLanguage = lang
@@ -101,31 +138,183 @@ class OverlayService : LifecycleService() {
                     if (enabled) startAutoCapture() else stopAutoCapture()
                 }
             }
+            launch {
+                container.preferencesRepository.overlayTheme.collect { theme ->
+                    overlayManager.applyTheme(theme)
+                }
+            }
+            launch {
+                container.preferencesRepository.clipboardMonitoring.collect { enabled ->
+                    if (enabled) startClipboardMonitoring() else stopClipboardMonitoring()
+                }
+            }
         }
     }
 
-    fun triggerCapture() {
-        if (!isCapturing.compareAndSet(false, true)) return
+    private fun startClipboardMonitoring() {
+        if (clipboardListener != null) return
+        val cbm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager = cbm
+        val listener = ClipboardManager.OnPrimaryClipChangedListener {
+            handleClipboardChange()
+        }
+        cbm.addPrimaryClipChangedListener(listener)
+        clipboardListener = listener
+    }
 
+    private fun stopClipboardMonitoring() {
+        clipboardListener?.let { clipboardManager?.removePrimaryClipChangedListener(it) }
+        clipboardListener = null
+        clipboardManager = null
+    }
+
+    private fun handleClipboardChange() {
         lifecycleScope.launch {
-            overlayManager.clearBubbles()
+            try {
+                val clip = clipboardManager?.primaryClip ?: return@launch
+                if (clip.itemCount == 0) return@launch
+                val text = clip.getItemAt(0).coerceToText(this@OverlayService).toString().trim()
+                if (text.isBlank() || text == lastClipText || text.length > 300) return@launch
+                lastClipText = text
 
-            container.translationPipeline.executeCapture().collect { state ->
-                when (state) {
-                    is PipelineState.Complete -> {
-                        overlayManager.showTranslations(state.results)
-                        isCapturing.set(false)
+                val sourceLang = container.languageDetector.detect(text)
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                if (sourceLang == "en" || sourceLang == targetLang || sourceLang == "und") return@launch
+
+                val result = container.translationRepository.translateText(text, targetLang)
+                overlayManager.showClipboardResult(text, result.translatedText)
+            } catch (e: Exception) {
+                Log.e(TAG, "Clipboard translate failed", e)
+            }
+        }
+    }
+
+    fun triggerCapture(forceStart: Boolean = false) {
+        if (forceStart) {
+            captureJob?.cancel()
+            isCapturing.set(true)
+        } else {
+            if (!isCapturing.compareAndSet(false, true)) return
+        }
+
+        val myGen = captureGeneration.incrementAndGet()
+
+        captureJob = lifecycleScope.launch {
+            try {
+                overlayManager.clearBubbles()
+                overlayManager.setFabProcessing(true)
+
+                container.translationPipeline.executeCapture().collect { state ->
+                    when (state) {
+                        is PipelineState.Complete -> {
+                            overlayManager.setFabProcessing(false)
+                            overlayManager.showTranslations(
+                                results = state.results,
+                                onSpeak = { text, lang -> container.ttsManager.speak(text, lang) },
+                                onExpand = { result -> handleBubbleExpand(result) }
+                            )
+                            state.results.forEach { result ->
+                                container.historyRepository.save(
+                                    HistoryEntry(
+                                        originalText = result.originalText,
+                                        translatedText = result.translatedText,
+                                        sourceLang = result.sourceLang,
+                                        targetLang = result.targetLang
+                                    )
+                                )
+                            }
+                        }
+                        is PipelineState.Error -> {
+                            overlayManager.setFabProcessing(false)
+                            Log.e(TAG, "Pipeline error: ${state.message}", state.cause)
+                            Toast.makeText(this@OverlayService, state.message, Toast.LENGTH_LONG).show()
+                        }
+                        is PipelineState.NoTextFound -> {
+                            overlayManager.setFabProcessing(false)
+                            Toast.makeText(this@OverlayService, getString(R.string.no_text_found), Toast.LENGTH_SHORT).show()
+                        }
+                        else -> { /* Capturing, Processing, Translating */ }
                     }
-                    is PipelineState.Error -> {
-                        Log.e(TAG, "Pipeline error: ${state.message}", state.cause)
-                        isCapturing.set(false)
-                    }
-                    is PipelineState.NoTextFound -> {
-                        isCapturing.set(false)
-                    }
-                    else -> { /* Capturing, Processing, Translating — no UI action needed */ }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Capture failed unexpectedly", e)
+                Toast.makeText(this@OverlayService, "Translation failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                if (captureGeneration.get() == myGen) {
+                    overlayManager.setFabProcessing(false)
+                    isCapturing.set(false)
                 }
             }
+        }
+    }
+
+    private fun handleBubbleExpand(result: TranslationResult) {
+        lifecycleScope.launch {
+            overlayManager.showAiDetailLoading(result, onClose = { overlayManager.hideAiDetail() })
+            val aiResult = fetchAiExamples(result)
+            overlayManager.updateAiDetailResult(aiResult)
+        }
+    }
+
+    private fun openManualInput() {
+        pendingFlashcard = null
+        pendingAiResult = null
+        overlayManager.showManualInput(
+            onTranslate = { text -> handleManualTranslate(text) },
+            onSaveFlashcard = { saveFlashcard() },
+            onClose = { overlayManager.hideManualInput() }
+        )
+    }
+
+    private fun handleManualTranslate(text: String) {
+        lifecycleScope.launch {
+            try {
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                val result = container.translationRepository.translateText(text, targetLang)
+                pendingFlashcard = result
+                overlayManager.showManualInputResult(result.translatedText)
+
+                val aiResult = fetchAiExamples(result)
+                pendingAiResult = aiResult
+                overlayManager.showManualInputAiResult(aiResult)
+            } catch (e: Exception) {
+                Log.e(TAG, "Manual translate failed", e)
+                overlayManager.hideManualInputLoading()
+                Toast.makeText(this@OverlayService, "Translation failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun saveFlashcard() {
+        val result = pendingFlashcard ?: return
+        val ai = pendingAiResult ?: AiResult("", emptyList())
+        lifecycleScope.launch {
+            container.flashcardRepository.save(
+                Flashcard(
+                    id = UUID.randomUUID().toString(),
+                    originalText = result.originalText,
+                    translatedText = result.translatedText,
+                    sourceLang = result.sourceLang,
+                    targetLang = result.targetLang,
+                    definition = ai.definition,
+                    examples = ai.examples
+                )
+            )
+            Toast.makeText(this@OverlayService, getString(R.string.flashcard_saved), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun fetchAiExamples(result: TranslationResult): AiResult {
+        val provider = container.preferencesRepository.aiProvider.first()
+        val key = container.preferencesRepository.aiApiKey.first()
+        val explainer = AiExplainerFactory.create(provider, key) ?: return AiResult("", emptyList())
+        return try {
+            explainer.explain(result.originalText, result.translatedText, result.targetLang)
+        } catch (e: Exception) {
+            Log.e(TAG, "AI explain failed", e)
+            AiResult("", emptyList())
         }
     }
 
@@ -145,29 +334,36 @@ class OverlayService : LifecycleService() {
         autoCaptureJob = null
     }
 
+    private fun buildNotification() = NotificationCompat.Builder(this, ScreenTranslateApp.NOTIFICATION_CHANNEL_ID)
+        .setContentTitle(getString(R.string.notification_title))
+        .setContentText(getString(R.string.notification_text))
+        .setSmallIcon(R.drawable.ic_translate)
+        .setContentIntent(
+            PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        )
+        .addAction(
+            R.drawable.ic_close, getString(R.string.notification_action_stop),
+            PendingIntent.getService(
+                this, 0,
+                Intent(this, OverlayService::class.java).apply { action = ACTION_STOP },
+                PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .setOngoing(true)
+        .setShowWhen(false)
+        .build()
+
     private fun startForegroundWithNotification() {
-        val stopIntent = PendingIntent.getService(
-            this, 0,
-            Intent(this, OverlayService::class.java).apply { action = ACTION_STOP },
-            PendingIntent.FLAG_IMMUTABLE
-        )
-        val openIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification = NotificationCompat.Builder(this, ScreenTranslateApp.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title))
-            .setContentText(getString(R.string.notification_text))
-            .setSmallIcon(R.drawable.ic_translate)
-            .setContentIntent(openIntent)
-            .addAction(R.drawable.ic_close, getString(R.string.notification_action_stop), stopIntent)
-            .setOngoing(true)
-            .setShowWhen(false)
-            .build()
-
-        startForeground(ScreenTranslateApp.NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceCompat.startForeground(
+                this,
+                ScreenTranslateApp.NOTIFICATION_ID,
+                buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(ScreenTranslateApp.NOTIFICATION_ID, buildNotification())
+        }
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -176,10 +372,13 @@ class OverlayService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        captureJob?.cancel()
         stopAutoCapture()
+        stopClipboardMonitoring()
         overlayManager.destroy()
         container.screenCaptureManager.release()
         container.mlKitTranslator.release()
+        container.ttsManager.release()
         super.onDestroy()
     }
 

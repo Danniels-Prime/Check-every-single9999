@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1565C0" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Translate" />
+  <title>Screen Translate</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1 class="header__title">
+      <svg class="header__icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.87,15.07l-2.54,-2.51 0.03,-0.03c1.74,-1.97 2.97,-4.25 3.68,-6.62L17,6V4h-7V2H8v2H1v1.99h11.17C11.5,7.92 10.44,9.75 9,11.35 8.07,10.32 7.3,9.19 6.69,8h-2c0.73,1.63 1.73,3.17 2.98,4.56l-5.09,5.02L4,19l5,-5 3.11,3.11 0.76,-2.04zM18.5,10h-2L12,22h2l1.12,-3h4.75L21,22h2l-4.5,-12zM15.88,17l1.62,-4.33L19.12,17h-3.24z"/>
+      </svg>
+      Screen Translate
+    </h1>
+    <button class="header__settings" id="settingsBtn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- SETTINGS PANEL -->
+  <div class="settings-overlay hidden" id="settingsOverlay"></div>
+  <aside class="settings-panel hidden" id="settingsPanel">
+    <div class="settings-panel__header">
+      <h2>Settings</h2>
+      <button class="settings-panel__close" id="settingsClose">✕</button>
+    </div>
+
+    <label class="setting-row">
+      <span class="setting-row__label">Source Language</span>
+      <select id="sourceLang" class="setting-row__select">
+        <option value="auto">Auto-detect</option>
+        <option value="rus" selected>Russian</option>
+        <option value="eng">English</option>
+        <option value="chi_sim">Chinese (Simplified)</option>
+        <option value="chi_tra">Chinese (Traditional)</option>
+        <option value="jpn">Japanese</option>
+        <option value="kor">Korean</option>
+        <option value="ara">Arabic</option>
+        <option value="hin">Hindi</option>
+        <option value="deu">German</option>
+        <option value="fra">French</option>
+        <option value="spa">Spanish</option>
+        <option value="por">Portuguese</option>
+        <option value="ita">Italian</option>
+        <option value="pol">Polish</option>
+        <option value="tur">Turkish</option>
+        <option value="ukr">Ukrainian</option>
+        <option value="tha">Thai</option>
+        <option value="vie">Vietnamese</option>
+      </select>
+    </label>
+
+    <label class="setting-row">
+      <span class="setting-row__label">Translate To</span>
+      <select id="targetLang" class="setting-row__select">
+        <option value="en" selected>English</option>
+        <option value="ru">Russian</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="it">Italian</option>
+        <option value="pt">Portuguese</option>
+        <option value="zh-CN">Chinese (Simplified)</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="ar">Arabic</option>
+        <option value="hi">Hindi</option>
+        <option value="tr">Turkish</option>
+        <option value="pl">Polish</option>
+        <option value="nl">Dutch</option>
+        <option value="sv">Swedish</option>
+        <option value="uk">Ukrainian</option>
+        <option value="vi">Vietnamese</option>
+        <option value="th">Thai</option>
+        <option value="id">Indonesian</option>
+      </select>
+    </label>
+
+    <label class="setting-row">
+      <span class="setting-row__label">Bubble Opacity</span>
+      <input type="range" id="opacitySlider" min="40" max="95" value="85" class="setting-row__range" />
+    </label>
+
+    <div class="settings-panel__info">
+      <p>Tap the floating button or upload a screenshot. The app reads all text on screen and translates it instantly.</p>
+      <p>Works offline after first load (PWA — install from your browser's menu).</p>
+    </div>
+  </aside>
+
+  <!-- LANDING / UPLOAD SCREEN -->
+  <main class="screen" id="screenLanding">
+    <div class="landing">
+      <div class="landing__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+        </svg>
+      </div>
+      <h2 class="landing__title">Translate Anything<br/>On Your Screen</h2>
+      <p class="landing__subtitle">Take a photo or upload a screenshot — get instant translations overlaid on the image</p>
+
+      <div class="landing__actions">
+        <button class="btn btn--primary" id="cameraBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z"/>
+            <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+          </svg>
+          Take Photo
+        </button>
+
+        <button class="btn btn--secondary" id="uploadBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
+          </svg>
+          Upload Screenshot
+        </button>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*" hidden />
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+    </div>
+  </main>
+
+  <!-- PROCESSING / RESULTS SCREEN -->
+  <main class="screen hidden" id="screenResult">
+
+    <!-- Image + overlay bubbles -->
+    <div class="image-wrap" id="imageWrap">
+      <img class="image-wrap__img" id="previewImg" alt="Screenshot being translated" />
+      <div class="bubbles" id="bubblesContainer"></div>
+
+      <!-- Scanning overlay during OCR -->
+      <div class="scan-overlay hidden" id="scanOverlay">
+        <div class="scan-overlay__bar"></div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-section" id="progressSection">
+      <div class="progress-bar">
+        <div class="progress-bar__fill" id="progressFill"></div>
+      </div>
+      <p class="progress-text" id="progressText">Initializing…</p>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar" id="bottomBar">
+      <button class="btn btn--ghost" id="retryBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        New Image
+      </button>
+
+      <button class="btn btn--primary hidden" id="translateBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.87,15.07l-2.54,-2.51 0.03,-0.03c1.74,-1.97 2.97,-4.25 3.68,-6.62L17,6V4h-7V2H8v2H1v1.99h11.17C11.5,7.92 10.44,9.75 9,11.35 8.07,10.32 7.3,9.19 6.69,8h-2c0.73,1.63 1.73,3.17 2.98,4.56l-5.09,5.02L4,19l5,-5 3.11,3.11 0.76,-2.04zM18.5,10h-2L12,22h2l1.12,-3h4.75L21,22h2l-4.5,-12z"/>
+        </svg>
+        Translate
+      </button>
+
+      <div class="result-info hidden" id="resultInfo">
+        <span id="resultCount"></span>
+        <button class="btn-text" id="clearBubblesBtn">Clear</button>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="toast"></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

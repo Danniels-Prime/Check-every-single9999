@@ -1,11 +1,14 @@
 package com.screentranslate.app.overlay
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.PixelFormat
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.WindowManager
+import com.screentranslate.app.R
 import com.screentranslate.app.databinding.OverlayFabBinding
 import com.screentranslate.app.util.DisplayMetricsHelper
 import kotlin.math.abs
@@ -16,10 +19,12 @@ class FloatingButtonView(
     private val context: Context,
     private val windowManager: WindowManager,
     private val onTap: () -> Unit,
+    private val onLongPress: () -> Unit = {},
     private val onSavedPosition: (x: Int, y: Int) -> Unit
 ) {
 
-    private val binding = OverlayFabBinding.inflate(LayoutInflater.from(context))
+    private val themedContext = ContextThemeWrapper(context, R.style.Theme_ScreenTranslate)
+    private val binding = OverlayFabBinding.inflate(LayoutInflater.from(themedContext))
     private val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -41,6 +46,7 @@ class FloatingButtonView(
     private val touchSlop = DisplayMetricsHelper.dpToPx(context, 8f)
 
     init {
+        binding.root.setOnLongClickListener { onLongPress(); true }
         binding.root.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -82,6 +88,12 @@ class FloatingButtonView(
         params.y = max(0, min(params.y, screenSize.y - binding.root.height))
         windowManager.updateViewLayout(binding.root, params)
         onSavedPosition(params.x, params.y)
+    }
+
+    fun setProcessing(isProcessing: Boolean) {
+        val color = if (isProcessing) 0xFF9E9E9E.toInt() else 0xFF1565C0.toInt()
+        binding.fab.backgroundTintList = ColorStateList.valueOf(color)
+        binding.fab.isEnabled = !isProcessing
     }
 
     fun setPosition(x: Int, y: Int) {

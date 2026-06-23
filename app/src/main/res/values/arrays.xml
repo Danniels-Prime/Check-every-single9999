@@ -54,6 +54,20 @@
         <item>id</item>
     </string-array>
 
+    <string-array name="ai_provider_names">
+        <item>Disabled</item>
+        <item>OpenAI (GPT-4o mini)</item>
+        <item>DeepSeek (cheap)</item>
+        <item>Google Gemini</item>
+    </string-array>
+
+    <string-array name="ai_provider_values">
+        <item>none</item>
+        <item>openai</item>
+        <item>deepseek</item>
+        <item>gemini</item>
+    </string-array>
+
     <string-array name="auto_capture_intervals">
         <item>2 seconds</item>
         <item>3 seconds</item>
@@ -66,5 +80,33 @@
         <item>3000</item>
         <item>5000</item>
         <item>10000</item>
+    </string-array>
+
+    <string-array name="app_theme_names">
+        <item>System Default</item>
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+
+    <string-array name="app_theme_values">
+        <item>system</item>
+        <item>light</item>
+        <item>dark</item>
+    </string-array>
+
+    <string-array name="overlay_theme_names">
+        <item>Classic Blue</item>
+        <item>Dark Purple</item>
+        <item>Forest Green</item>
+        <item>Sunset Orange</item>
+        <item>Minimal White</item>
+    </string-array>
+
+    <string-array name="overlay_theme_values">
+        <item>blue</item>
+        <item>purple</item>
+        <item>green</item>
+        <item>orange</item>
+        <item>white</item>
     </string-array>
 </resources>
