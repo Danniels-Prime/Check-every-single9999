@@ -46,6 +46,7 @@ class OverlayService : LifecycleService() {
     private lateinit var container: AppContainer
     private lateinit var overlayManager: OverlayManager
     private var autoCaptureJob: Job? = null
+    private var captureJob: Job? = null
     private val isCapturing = AtomicBoolean(false)
 
     private var clipboardManager: ClipboardManager? = null
@@ -115,7 +116,7 @@ class OverlayService : LifecycleService() {
             container.translationPipeline.targetLanguage = targetLang
 
             overlayManager.showFab(
-                onTap = { triggerCapture() },
+                onTap = { triggerCapture(forceStart = true) },
                 onLongPress = { openManualInput() },
                 savedX = savedX,
                 savedY = savedY
@@ -187,47 +188,59 @@ class OverlayService : LifecycleService() {
         }
     }
 
-    fun triggerCapture() {
-        if (!isCapturing.compareAndSet(false, true)) return
+    fun triggerCapture(forceStart: Boolean = false) {
+        if (forceStart) {
+            captureJob?.cancel()
+            isCapturing.set(true)
+        } else {
+            if (!isCapturing.compareAndSet(false, true)) return
+        }
 
-        lifecycleScope.launch {
-            overlayManager.clearBubbles()
-            overlayManager.setFabProcessing(true)
+        captureJob = lifecycleScope.launch {
+            try {
+                overlayManager.clearBubbles()
+                overlayManager.setFabProcessing(true)
 
-            container.translationPipeline.executeCapture().collect { state ->
-                when (state) {
-                    is PipelineState.Complete -> {
-                        overlayManager.setFabProcessing(false)
-                        overlayManager.showTranslations(
-                            results = state.results,
-                            onSpeak = { text, lang -> container.ttsManager.speak(text, lang) },
-                            onExpand = { result -> handleBubbleExpand(result) }
-                        )
-                        state.results.forEach { result ->
-                            container.historyRepository.save(
-                                HistoryEntry(
-                                    originalText = result.originalText,
-                                    translatedText = result.translatedText,
-                                    sourceLang = result.sourceLang,
-                                    targetLang = result.targetLang
-                                )
+                container.translationPipeline.executeCapture().collect { state ->
+                    when (state) {
+                        is PipelineState.Complete -> {
+                            overlayManager.setFabProcessing(false)
+                            overlayManager.showTranslations(
+                                results = state.results,
+                                onSpeak = { text, lang -> container.ttsManager.speak(text, lang) },
+                                onExpand = { result -> handleBubbleExpand(result) }
                             )
+                            state.results.forEach { result ->
+                                container.historyRepository.save(
+                                    HistoryEntry(
+                                        originalText = result.originalText,
+                                        translatedText = result.translatedText,
+                                        sourceLang = result.sourceLang,
+                                        targetLang = result.targetLang
+                                    )
+                                )
+                            }
                         }
-                        isCapturing.set(false)
+                        is PipelineState.Error -> {
+                            overlayManager.setFabProcessing(false)
+                            Log.e(TAG, "Pipeline error: ${state.message}", state.cause)
+                            Toast.makeText(this@OverlayService, state.message, Toast.LENGTH_LONG).show()
+                        }
+                        is PipelineState.NoTextFound -> {
+                            overlayManager.setFabProcessing(false)
+                            Toast.makeText(this@OverlayService, getString(R.string.no_text_found), Toast.LENGTH_SHORT).show()
+                        }
+                        else -> { /* Capturing, Processing, Translating */ }
                     }
-                    is PipelineState.Error -> {
-                        overlayManager.setFabProcessing(false)
-                        Log.e(TAG, "Pipeline error: ${state.message}", state.cause)
-                        Toast.makeText(this@OverlayService, state.message, Toast.LENGTH_LONG).show()
-                        isCapturing.set(false)
-                    }
-                    is PipelineState.NoTextFound -> {
-                        overlayManager.setFabProcessing(false)
-                        Toast.makeText(this@OverlayService, getString(R.string.no_text_found), Toast.LENGTH_SHORT).show()
-                        isCapturing.set(false)
-                    }
-                    else -> { /* Capturing, Processing, Translating */ }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Capture failed unexpectedly", e)
+                Toast.makeText(this@OverlayService, "Translation failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                overlayManager.setFabProcessing(false)
+                isCapturing.set(false)
             }
         }
     }
@@ -354,6 +367,7 @@ class OverlayService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        captureJob?.cancel()
         stopAutoCapture()
         stopClipboardMonitoring()
         overlayManager.destroy()
