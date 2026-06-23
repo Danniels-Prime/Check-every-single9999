@@ -1,9 +1,16 @@
 package com.screentranslate.app.overlay
 
 import android.content.Context
+import android.graphics.PixelFormat
+import android.view.ContextThemeWrapper
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
 import android.view.WindowManager
+import com.screentranslate.app.R
 import com.screentranslate.app.ai.AiResult
 import com.screentranslate.app.translation.TranslationResult
+import com.screentranslate.app.util.DisplayMetricsHelper
 
 data class OverlayTheme(val bubbleBgColor: Int, val bubbleTextColor: Int)
 
@@ -16,6 +23,7 @@ class OverlayManager(
     private val bubbles = mutableListOf<TranslationBubbleView>()
     private var aiDetailView: AiDetailView? = null
     private var manualInputView: ManualInputView? = null
+    private var dismissView: View? = null
     private var opacity: Float = 0.85f
     private var onFabPositionSaved: ((Int, Int) -> Unit)? = null
     var currentTheme: OverlayTheme = OverlayTheme(0xCC1565C0.toInt(), 0xFFFFFFFF.toInt())
@@ -75,17 +83,46 @@ class OverlayManager(
                 bubbles.add(bubble)
             }
         }
-        if (bubbles.isNotEmpty()) fabView?.setShowClear(true)
+        if (bubbles.isNotEmpty()) showDismissButton { clearBubbles() }
     }
 
     fun setFabProcessing(isProcessing: Boolean) {
         fabView?.setProcessing(isProcessing)
     }
 
-    fun clearBubbles(updateFabIcon: Boolean = true) {
+    fun clearBubbles() {
         bubbles.forEach { it.removeFromWindow() }
         bubbles.clear()
-        if (updateFabIcon) fabView?.setShowClear(false)
+        hideDismissButton()
+    }
+
+    private fun showDismissButton(onDismiss: () -> Unit) {
+        hideDismissButton()
+        val themedContext = ContextThemeWrapper(context, R.style.Theme_ScreenTranslate)
+        val view = LayoutInflater.from(themedContext).inflate(R.layout.overlay_dismiss_button, null)
+        val statusBarHeight = DisplayMetricsHelper.getStatusBarHeight(context)
+        val margin = DisplayMetricsHelper.dpToPx(context, 16f)
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = margin
+            y = statusBarHeight + margin
+        }
+        view.setOnClickListener { onDismiss() }
+        windowManager.addView(view, params)
+        dismissView = view
+    }
+
+    private fun hideDismissButton() {
+        dismissView?.let { runCatching { windowManager.removeView(it) } }
+        dismissView = null
     }
 
     private var onShareCallback: ((String, String, List<String>) -> Unit)? = null
@@ -137,6 +174,10 @@ class OverlayManager(
         manualInputView?.showAiResult(aiResult)
     }
 
+    fun hideManualInputLoading() {
+        manualInputView?.hideLoading()
+    }
+
     fun hideManualInput() {
         manualInputView?.removeFromWindow()
         manualInputView = null
@@ -144,6 +185,7 @@ class OverlayManager(
 
     fun destroy() {
         clearBubbles()
+        hideDismissButton()
         hideFab()
         hideAiDetail()
         hideManualInput()

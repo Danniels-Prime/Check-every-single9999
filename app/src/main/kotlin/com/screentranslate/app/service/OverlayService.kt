@@ -109,13 +109,7 @@ class OverlayService : LifecycleService() {
             container.translationPipeline.targetLanguage = targetLang
 
             overlayManager.showFab(
-                onTap = {
-                    if (overlayManager.hasBubbles) {
-                        overlayManager.clearBubbles()
-                    } else {
-                        triggerCapture()
-                    }
-                },
+                onTap = { triggerCapture() },
                 onLongPress = { openManualInput() },
                 savedX = savedX,
                 savedY = savedY
@@ -148,7 +142,7 @@ class OverlayService : LifecycleService() {
         if (!isCapturing.compareAndSet(false, true)) return
 
         lifecycleScope.launch {
-            overlayManager.clearBubbles(updateFabIcon = false)
+            overlayManager.clearBubbles()
             overlayManager.setFabProcessing(true)
 
             container.translationPipeline.executeCapture().collect { state ->
@@ -209,14 +203,20 @@ class OverlayService : LifecycleService() {
 
     private fun handleManualTranslate(text: String) {
         lifecycleScope.launch {
-            val targetLang = container.preferencesRepository.targetLanguage.first()
-            val result = container.translationRepository.translateText(text, targetLang)
-            pendingFlashcard = result
-            overlayManager.showManualInputResult(result.translatedText)
+            try {
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                val result = container.translationRepository.translateText(text, targetLang)
+                pendingFlashcard = result
+                overlayManager.showManualInputResult(result.translatedText)
 
-            val aiResult = fetchAiExamples(result)
-            pendingAiResult = aiResult
-            overlayManager.showManualInputAiResult(aiResult)
+                val aiResult = fetchAiExamples(result)
+                pendingAiResult = aiResult
+                overlayManager.showManualInputAiResult(aiResult)
+            } catch (e: Exception) {
+                Log.e(TAG, "Manual translate failed", e)
+                overlayManager.hideManualInputLoading()
+                Toast.makeText(this@OverlayService, "Translation failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

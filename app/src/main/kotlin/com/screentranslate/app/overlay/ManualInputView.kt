@@ -51,6 +51,7 @@ class ManualInputView(
             if (text.isNotBlank()) {
                 lastOriginal = text
                 hideKeyboard()
+                showLoading()
                 onTranslate(text)
             }
         }
@@ -60,7 +61,19 @@ class ManualInputView(
         }
     }
 
+    fun showLoading() {
+        binding.progressBar.visibility = View.VISIBLE
+        binding.btnTranslate.isEnabled = false
+        binding.layoutResult.visibility = View.GONE
+    }
+
+    fun hideLoading() {
+        binding.progressBar.visibility = View.GONE
+        binding.btnTranslate.isEnabled = true
+    }
+
     fun showResult(translated: String) {
+        hideLoading()
         lastTranslated = translated
         binding.tvTranslated.text = translated
         binding.layoutResult.visibility = View.VISIBLE
