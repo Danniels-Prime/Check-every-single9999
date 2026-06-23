@@ -24,6 +24,7 @@ class OverlayManager(
     private var aiDetailView: AiDetailView? = null
     private var manualInputView: ManualInputView? = null
     private var dismissView: View? = null
+    private var clipboardBubbleView: ClipboardBubbleView? = null
     private var opacity: Float = 0.85f
     private var onFabPositionSaved: ((Int, Int) -> Unit)? = null
     var currentTheme: OverlayTheme = OverlayTheme(0xCC1565C0.toInt(), 0xFFFFFFFF.toInt())
@@ -72,7 +73,7 @@ class OverlayManager(
         onSpeak: (String, String) -> Unit,
         onExpand: (TranslationResult) -> Unit
     ) {
-        clearBubbles(updateFabIcon = false)
+        clearBubbles()
         results.forEach { result ->
             if (result.translatedText != result.originalText) {
                 val bubble = TranslationBubbleView(
@@ -183,11 +184,24 @@ class OverlayManager(
         manualInputView = null
     }
 
+    fun showClipboardResult(original: String, translated: String) {
+        clipboardBubbleView?.removeFromWindow()
+        clipboardBubbleView = ClipboardBubbleView(context, windowManager).also {
+            it.show(original, translated)
+        }
+    }
+
+    fun hideClipboardResult() {
+        clipboardBubbleView?.removeFromWindow()
+        clipboardBubbleView = null
+    }
+
     fun destroy() {
         clearBubbles()
         hideDismissButton()
         hideFab()
         hideAiDetail()
         hideManualInput()
+        hideClipboardResult()
     }
 }

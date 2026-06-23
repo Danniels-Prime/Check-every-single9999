@@ -11,5 +11,9 @@ data class Flashcard(
     val targetLang: String,
     val definition: String = "",
     val examples: List<String> = emptyList(),
-    val savedAt: Long = System.currentTimeMillis()
+    val savedAt: Long = System.currentTimeMillis(),
+    val nextReviewAt: Long = 0L,
+    val intervalDays: Int = 1,
+    val easeFactor: Float = 2.5f,
+    val repetitions: Int = 0
 )

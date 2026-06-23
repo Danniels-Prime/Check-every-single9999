@@ -1,6 +1,8 @@
 package com.screentranslate.app.service
 
 import android.app.PendingIntent
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Binder
@@ -45,6 +47,10 @@ class OverlayService : LifecycleService() {
     private lateinit var overlayManager: OverlayManager
     private var autoCaptureJob: Job? = null
     private val isCapturing = AtomicBoolean(false)
+
+    private var clipboardManager: ClipboardManager? = null
+    private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    private var lastClipText = ""
 
     // Holds translation result from manual input so we can save it as a flashcard
     private var pendingFlashcard: TranslationResult? = null
@@ -134,6 +140,49 @@ class OverlayService : LifecycleService() {
                 container.preferencesRepository.overlayTheme.collect { theme ->
                     overlayManager.applyTheme(theme)
                 }
+            }
+            launch {
+                container.preferencesRepository.clipboardMonitoring.collect { enabled ->
+                    if (enabled) startClipboardMonitoring() else stopClipboardMonitoring()
+                }
+            }
+        }
+    }
+
+    private fun startClipboardMonitoring() {
+        if (clipboardListener != null) return
+        val cbm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager = cbm
+        val listener = ClipboardManager.OnPrimaryClipChangedListener {
+            handleClipboardChange()
+        }
+        cbm.addPrimaryClipChangedListener(listener)
+        clipboardListener = listener
+    }
+
+    private fun stopClipboardMonitoring() {
+        clipboardListener?.let { clipboardManager?.removePrimaryClipChangedListener(it) }
+        clipboardListener = null
+        clipboardManager = null
+    }
+
+    private fun handleClipboardChange() {
+        lifecycleScope.launch {
+            try {
+                val clip = clipboardManager?.primaryClip ?: return@launch
+                if (clip.itemCount == 0) return@launch
+                val text = clip.getItemAt(0).coerceToText(this@OverlayService).toString().trim()
+                if (text.isBlank() || text == lastClipText || text.length > 300) return@launch
+                lastClipText = text
+
+                val sourceLang = container.languageDetector.detect(text)
+                val targetLang = container.preferencesRepository.targetLanguage.first()
+                if (sourceLang == "en" || sourceLang == targetLang || sourceLang == "und") return@launch
+
+                val result = container.translationRepository.translateText(text, targetLang)
+                overlayManager.showClipboardResult(text, result.translatedText)
+            } catch (e: Exception) {
+                Log.e(TAG, "Clipboard translate failed", e)
             }
         }
     }
@@ -306,6 +355,7 @@ class OverlayService : LifecycleService() {
 
     override fun onDestroy() {
         stopAutoCapture()
+        stopClipboardMonitoring()
         overlayManager.destroy()
         container.screenCaptureManager.release()
         container.mlKitTranslator.release()

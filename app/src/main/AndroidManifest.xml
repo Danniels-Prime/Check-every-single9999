@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:name=".ScreenTranslateApp"
@@ -42,6 +43,16 @@
             android:name=".ui.HistoryActivity"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.FlashcardReviewActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.FlashcardsActivity" />
+
+        <activity
+            android:name=".ui.CameraTranslationActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
         <receiver
             android:name=".widget.TranslationWidget"

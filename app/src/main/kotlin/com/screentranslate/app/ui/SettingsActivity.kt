@@ -190,6 +190,19 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
 
+            // Clipboard monitoring
+            val clipboardPref = SwitchPreferenceCompat(context).apply {
+                key = "clipboard_monitoring"
+                title = getString(R.string.pref_clipboard_monitoring)
+                summary = getString(R.string.pref_clipboard_monitoring_summary)
+                setOnPreferenceChangeListener { _, newValue ->
+                    lifecycleScope.launch {
+                        container.preferencesRepository.setClipboardMonitoring(newValue as Boolean)
+                    }
+                    true
+                }
+            }
+
             // Import vocabulary pack
             val importVocabPref = Preference(context).apply {
                 key = "import_vocab"
@@ -240,6 +253,7 @@ class SettingsActivity : AppCompatActivity() {
             screen.addPreference(aiKeyPref)
             screen.addPreference(appThemePref)
             screen.addPreference(overlayThemePref)
+            screen.addPreference(clipboardPref)
             screen.addPreference(importVocabPref)
 
             preferenceScreen = screen
@@ -253,6 +267,7 @@ class SettingsActivity : AppCompatActivity() {
                 aiProviderPref.value = container.preferencesRepository.aiProvider.first()
                 appThemePref.value = container.preferencesRepository.appTheme.first()
                 overlayThemePref.value = container.preferencesRepository.overlayTheme.first()
+                clipboardPref.isChecked = container.preferencesRepository.clipboardMonitoring.first()
             }
         }
     }

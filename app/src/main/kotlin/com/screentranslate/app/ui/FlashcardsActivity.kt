@@ -37,6 +37,15 @@ class FlashcardsActivity : AppCompatActivity() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
+        binding.btnReview.setOnClickListener {
+            startActivity(Intent(this, FlashcardReviewActivity::class.java))
+        }
+
+        loadCards()
+    }
+
+    override fun onResume() {
+        super.onResume()
         loadCards()
     }
 
@@ -59,10 +68,18 @@ class FlashcardsActivity : AppCompatActivity() {
 
     private fun loadCards() {
         lifecycleScope.launch {
-            val cards = application.appContainer.flashcardRepository.getAll()
+            val repo = application.appContainer.flashcardRepository
+            val cards = repo.getAll()
+            val dueCount = repo.getDueCards().size
             adapter.submitList(cards)
             binding.tvEmpty.visibility = if (cards.isEmpty()) View.VISIBLE else View.GONE
             binding.recyclerView.visibility = if (cards.isEmpty()) View.GONE else View.VISIBLE
+            binding.btnReview.text = if (dueCount > 0) {
+                getString(R.string.review_button, dueCount)
+            } else {
+                getString(R.string.review_button_zero)
+            }
+            binding.btnReview.isEnabled = dueCount > 0
         }
     }
 

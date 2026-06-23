@@ -111,4 +111,28 @@
     <string name="pref_import_vocab_summary">500 Russian-English phrases with examples (Omega Language Codex)</string>
     <string name="vocab_importing">Importing vocabulary…</string>
     <string name="vocab_imported">Imported %1$d phrases to flashcards</string>
+
+    <!-- SRS Flashcard Review -->
+    <string name="review_title">Flashcard Review</string>
+    <string name="review_progress">%1$d / %2$d cards</string>
+    <string name="review_show_answer">Show Answer</string>
+    <string name="review_again">Again</string>
+    <string name="review_hard">Hard</string>
+    <string name="review_good">Good</string>
+    <string name="review_easy">Easy</string>
+    <string name="review_done_summary">%1$d cards reviewed!</string>
+    <string name="review_done_close">Close</string>
+    <string name="review_no_cards_due">All caught up! No cards due for review.</string>
+    <string name="review_button">Review (%1$d due)</string>
+    <string name="review_button_zero">Review (no cards due)</string>
+
+    <!-- Clipboard Auto-Translate -->
+    <string name="pref_clipboard_monitoring">Clipboard Auto-Translate</string>
+    <string name="pref_clipboard_monitoring_summary">Translate foreign text when copied from other apps</string>
+
+    <!-- Camera Translate -->
+    <string name="btn_camera_translate">Camera Translate</string>
+    <string name="camera_translate_hint">Point camera at text to translate</string>
+    <string name="camera_permission_denied">Camera permission required for live translation</string>
+    <string name="back">Back</string>
 </resources>

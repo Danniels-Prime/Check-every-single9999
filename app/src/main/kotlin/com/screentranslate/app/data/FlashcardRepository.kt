@@ -28,6 +28,11 @@ class FlashcardRepository(context: Context) {
         file.writeText(json.encodeToString(cards))
     }
 
+    suspend fun getDueCards(): List<Flashcard> {
+        val now = System.currentTimeMillis()
+        return getAll().filter { it.nextReviewAt <= now }
+    }
+
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
         val cards = getAll().filter { it.id != id }
         file.writeText(json.encodeToString(cards))
