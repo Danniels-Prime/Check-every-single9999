@@ -48,6 +48,7 @@ class OverlayService : LifecycleService() {
     private var autoCaptureJob: Job? = null
     private var captureJob: Job? = null
     private val isCapturing = AtomicBoolean(false)
+    private val captureGeneration = java.util.concurrent.atomic.AtomicInteger(0)
 
     private var clipboardManager: ClipboardManager? = null
     private var clipboardListener: ClipboardManager.OnPrimaryClipChangedListener? = null
@@ -196,6 +197,8 @@ class OverlayService : LifecycleService() {
             if (!isCapturing.compareAndSet(false, true)) return
         }
 
+        val myGen = captureGeneration.incrementAndGet()
+
         captureJob = lifecycleScope.launch {
             try {
                 overlayManager.clearBubbles()
@@ -239,8 +242,10 @@ class OverlayService : LifecycleService() {
                 Log.e(TAG, "Capture failed unexpectedly", e)
                 Toast.makeText(this@OverlayService, "Translation failed: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
-                overlayManager.setFabProcessing(false)
-                isCapturing.set(false)
+                if (captureGeneration.get() == myGen) {
+                    overlayManager.setFabProcessing(false)
+                    isCapturing.set(false)
+                }
             }
         }
     }
